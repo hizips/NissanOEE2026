@@ -1,10 +1,3 @@
-export interface Machine {
-  id: string;
-  name: string;
-  idealCycleTime: number; 
-  status: 'running' | 'idle' | 'maintenance' | 'breakdown';
-}
-
 export interface ProductionRecord {
   id: string;
   machineId: string;
@@ -33,4 +26,11 @@ export interface DowntimeReason {
   category: string;
   subcategory: string;
   description?: string;
+}
+
+export interface Machine {
+  id: string;
+  name: string;
+  idealCycleTime: number;
+  status: 'running' | 'idle' | 'maintenance' | 'breakdown';
 }

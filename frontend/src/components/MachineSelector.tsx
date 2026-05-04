@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { Machine } from '@/types'; 
+import type { Machine } from '@/types'; 
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Factory } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Machine, ProductionRecord, OEEMetrics } from '../types';
+import type { ProductionRecord, OEEMetrics, Machine } from '@/types';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Activity, CheckCircle2, AlertCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import { format, subDays, startOfDay } from 'date-fns';

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect } from 'react';
 // decoupled types to prevent circular dependencies
-import { Machine, ProductionRecord } from '@/types'; 
+import type { Machine, ProductionRecord } from '@/types'; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
@@ -178,7 +178,7 @@ export default function App() {
       </>
     );
   }
-
+// Inside App.tsx, right before return (...)
   return (
     <>
       <div className="min-h-screen bg-slate-50 font-sans">
