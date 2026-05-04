@@ -5,6 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Factory, User, Lock, LogIn, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,16 +27,21 @@ export function Login({ onLogin }: LoginProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!employeeId.trim() || !password.trim()) {
-      toast.error('Credentials are required');
+    if (!employeeId.trim()) {
+      toast.error('Employee ID is required');
+      return;
+    }
+
+    if (!password.trim()) {
+      toast.error('Password is required');
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate authentication delay[cite: 6]
+    // Simulate authentication delay
     setTimeout(() => {
-      // Demo credentials logic from Figma export[cite: 6]
+      // Demo credentials - in production this would call a real auth API
       const validCredentials = [
         { id: 'OP001', password: 'operator123', role: 'operator' as const },
         { id: 'MGR001', password: 'manager123', role: 'manager' as const },
@@ -45,85 +56,150 @@ export function Login({ onLogin }: LoginProps) {
         toast.success('Login successful!');
         onLogin(employeeId, role);
       } else {
-        toast.error('Invalid credentials. Use OP001/operator123 or MGR001/manager123');
+        toast.error('Invalid credentials. Please try again.');
         setIsLoading(false);
       }
     }, 800);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20"></div>
+
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex p-4 bg-blue-600 rounded-2xl shadow-xl mb-4">
-            <Factory className="w-10 h-10 text-white" />
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-4 bg-blue-600 rounded-2xl shadow-2xl">
+              <Factory className="w-12 h-12 text-white" />
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white">OEE System</h1>
-          <p className="text-slate-400">Production Monitoring Login</p>
+          <h1 className="text-4xl font-bold text-white mb-2">OEE Management System</h1>
+          <p className="text-slate-400 text-lg">Casting Factory Production Monitoring</p>
         </div>
 
-        <Card className="border-slate-800 bg-slate-900 shadow-2xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl text-center text-white">Staff Authentication</CardTitle>
+        <Card className="border-2 border-slate-700 shadow-2xl bg-slate-800/50 backdrop-blur-sm">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl text-center text-white">Staff Login</CardTitle>
+            <CardDescription className="text-center text-slate-400">
+              Enter your credentials to access the system
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-slate-300">Employee ID</Label>
+                <Label htmlFor="employeeId" className="text-slate-200 text-sm font-semibold">
+                  Employee ID
+                </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <Input
-                    placeholder="Enter ID"
+                    id="employeeId"
+                    type="text"
+                    placeholder="Enter your employee ID"
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
-                    className="pl-10 bg-slate-950 border-slate-800 text-white"
+                    className="pl-11 h-12 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300">Password</Label>
+                <Label htmlFor="password" className="text-slate-200 text-sm font-semibold">
+                  Password
+                </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <Input
+                    id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-slate-950 border-slate-800 text-white"
+                    className="pl-11 h-12 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300 flex items-center gap-2">
-                  <Shield className="h-4 w-4" /> Role
+                <Label htmlFor="role" className="text-slate-200 text-sm font-semibold flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Role
                 </Label>
-                <Select value={role} onValueChange={(value: 'operator' | 'manager') => setRole(value)}>
-                  <SelectTrigger className="bg-slate-950 border-slate-800 text-white">
+                <Select value={role} onValueChange={(value: 'operator' | 'manager') => setRole(value)} disabled={isLoading}>
+                  <SelectTrigger id="role" className="h-12 bg-slate-900/50 border-slate-600 text-white focus:border-blue-500">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="operator">Operator</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="operator">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span>Operator</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="manager">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span>Manager</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-lg font-bold mt-4">
-                {isLoading ? 'Verifying...' : 'Login to System'}
+              <Button
+                type="submit"
+                className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white gap-2 mt-6"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-5 w-5" />
+                    Login to System
+                  </>
+                )}
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-slate-950 rounded-lg border border-slate-800">
-              <p className="text-[10px] uppercase font-bold text-slate-500 mb-2">Debug Credentials</p>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400">
-                <span>OP: OP001</span><span>PW: operator123</span>
-                <span>MG: MGR001</span><span>PW: manager123</span>
+            <div className="mt-6 pt-6 border-t border-slate-700">
+              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                <p className="text-xs font-semibold text-slate-300 mb-2">Demo Credentials:</p>
+                <div className="space-y-1 text-xs text-slate-400 font-mono">
+                  <div className="flex justify-between">
+                    <span>Operator:</span>
+                    <span className="text-blue-400">OP001 / operator123</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Manager:</span>
+                    <span className="text-purple-400">MGR001 / manager123</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Quick Demo:</span>
+                    <span className="text-green-400">demo / demo</span>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-6 text-center">
+          <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+            <Badge variant="outline" className="border-slate-600 text-slate-400">
+              v1.0.0
+            </Badge>
+            <span>•</span>
+            <span>© 2026 Casting Factory</span>
+            <span>•</span>
+            <span>Secure Access</span>
+          </div>
+        </div>
       </div>
     </div>
   );
