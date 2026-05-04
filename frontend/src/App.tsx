@@ -1,6 +1,5 @@
- import { useState, useEffect } from 'react';
-// decoupled types to prevent circular dependencies
-import type { Machine, ProductionRecord } from '@/types'; 
+import { useState, useEffect } from 'react';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
@@ -20,7 +19,7 @@ import { Factory, Clock, Calendar, LogOut, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-// Sample data generator remains here for local dev testing
+// Generate realistic sample data
 const generateSampleData = (): ProductionRecord[] => {
   const sampleRecords: ProductionRecord[] = [];
   const machines = [
@@ -69,12 +68,15 @@ const generateSampleData = (): ProductionRecord[] => {
       });
     });
   }
+
   return sampleRecords.sort((a, b) => b.timestamp - a.timestamp);
 };
 
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('oee-authenticated') === 'true';
+    const saved = sessionStorage.getItem('oee-authenticated');
+    return saved === 'true';
   });
 
   const [currentUser, setCurrentUser] = useState<{ employeeId: string; role: 'operator' | 'manager' } | null>(() => {
@@ -99,7 +101,9 @@ export default function App() {
 
   const [productionRecords, setProductionRecords] = useState<ProductionRecord[]>(() => {
     const saved = localStorage.getItem('oee-production-records');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      return JSON.parse(saved);
+    }
     const sampleData = generateSampleData();
     localStorage.setItem('oee-production-records', JSON.stringify(sampleData));
     return sampleData;
@@ -114,9 +118,12 @@ export default function App() {
   }, [productionRecords]);
 
   const addProductionRecord = (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => {
-    const newRecord: ProductionRecord = { ...record, id: crypto.randomUUID(), timestamp: Date.now() };
+    const newRecord: ProductionRecord = {
+      ...record,
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
     setProductionRecords([newRecord, ...productionRecords]);
-    toast.success('Production data recorded');
   };
 
   const updateMachine = (id: string, updates: Partial<Machine>) => {
@@ -149,18 +156,22 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
-    sessionStorage.clear();
+    sessionStorage.removeItem('oee-authenticated');
+    sessionStorage.removeItem('oee-current-user');
+    sessionStorage.removeItem('oee-login-timestamp');
     toast.success('Logged out successfully');
   };
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const getCurrentShift = () => {
+  const getCurrentShift = (): { name: string; color: string } => {
     const hour = currentTime.getHours();
     if (hour >= 6 && hour < 14) return { name: 'Morning Shift', color: 'bg-blue-500' };
     if (hour >= 14 && hour < 22) return { name: 'Afternoon Shift', color: 'bg-amber-500' };
@@ -169,76 +180,201 @@ export default function App() {
 
   const currentShift = getCurrentShift();
   const runningMachines = machines.filter(m => m.status === 'running').length;
+  const totalMachines = machines.length;
 
   if (!isAuthenticated) {
     return (
       <>
         <Login onLogin={handleLogin} />
-        <Toaster position="top-right" />
+        <Toaster />
       </>
     );
   }
-// Inside App.tsx, right before return (...)
+    
   return (
     <>
-      <div className="min-h-screen bg-slate-50 font-sans">
-        <header className="bg-slate-900 text-white px-6 py-4 border-b border-slate-700 shadow-sm">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg"><Factory className="w-6 h-6" /></div>
-              <h1 className="text-xl font-bold tracking-tight">OEE Dashboard</h1>
-            </div>
-            
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-4 text-slate-300">
-                <span className="flex items-center gap-2"><Calendar className="w-4 h-4" />{format(currentTime, 'MMM dd')}</span>
-                <span className="flex items-center gap-2"><Clock className="w-4 h-4" />{format(currentTime, 'HH:mm:ss')}</span>
-                <Badge className={`${currentShift.color} text-white border-none`}>{currentShift.name}</Badge>
-              </div>
-              <div className="h-6 w-px bg-slate-700"></div>
+      <div className="min-h-screen bg-slate-50">
+        <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 shadow-lg">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="font-semibold">{currentUser?.employeeId}</p>
-                  <p className="text-xs text-slate-400 capitalize">{currentUser?.role}</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="p-2 bg-blue-600 rounded-lg cursor-help">
+                        <Factory className="w-8 h-8" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>OEE Production Monitoring Platform</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <div>
+                  <h1 className="text-2xl font-bold">OEE Management System</h1>
+                  <p className="text-sm text-slate-300">Casting Factory Production Monitoring</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-white hover:bg-slate-800">
-                  <LogOut className="w-5 h-5" />
-                </Button>
               </div>
+              <TooltipProvider>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-slate-400" />
+                    <span className="font-semibold">{format(currentTime, 'MMM dd, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-slate-400" />
+                    <span className="font-mono font-semibold">{format(currentTime, 'HH:mm:ss')}</span>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className={`${currentShift.color} text-white px-3 py-1 cursor-help`}>
+                        {currentShift.name}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Current shift based on time of day</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-sm cursor-help">
+                        <span className="text-slate-400">Machines:</span>
+                        <span className="ml-2 font-semibold">
+                          {runningMachines}/{totalMachines} Running
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Currently active machines out of total</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <div className="h-8 w-px bg-slate-600"></div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-sm font-semibold flex items-center gap-2">
+                        <User className="h-4 w-4 text-slate-400" />
+                        {currentUser?.employeeId}
+                      </div>
+                      <div className="text-xs text-slate-400 capitalize">
+                        {currentUser?.role}
+                      </div>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={handleLogout}
+                          className="gap-2 bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:text-white h-12 px-6"
+                        >
+                          <LogOut className="h-5 w-5" />
+                          <span className="font-semibold">Logout</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Sign out from the system</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              </TooltipProvider>
             </div>
           </div>
         </header>
 
         <main className="max-w-7xl mx-auto px-6 py-8">
-          <Tabs defaultValue={currentUser?.role === 'operator' ? 'entry' : 'dashboard'} className="space-y-8">
-            {currentUser?.role === 'manager' && (
-              <TabsList className="bg-slate-200/50 p-1 rounded-xl h-12 inline-flex">
-                <TabsTrigger value="dashboard" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
-                <TabsTrigger value="entry" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Data Entry</TabsTrigger>
-                <TabsTrigger value="history" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">History</TabsTrigger>
-                <TabsTrigger value="machines" className="px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Machines</TabsTrigger>
-              </TabsList>
-            )}
+          <TooltipProvider>
+            <Tabs defaultValue={currentUser?.role === 'operator' ? 'entry' : 'dashboard'} className="space-y-6">
+              {currentUser?.role === 'manager' ? (
+                <TabsList className="grid w-full grid-cols-4 max-w-2xl h-14">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="dashboard" className="text-base h-full">Dashboard</TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View real-time performance metrics and alerts</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="entry" className="text-base h-full">Data Entry</TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Record production data for current shift</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="history" className="text-base h-full">History</TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View historical production records</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="machines" className="text-base h-full">Machines</TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Manage machine settings and performance</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TabsList>
+              ) : (
+                <div className="max-w-2xl">
+                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg shadow-lg">
+                    <h2 className="text-2xl font-bold mb-2">Operator Data Entry</h2>
+                    <p className="text-blue-100">Record production data for your current shift</p>
+                  </div>
+                </div>
+              )}
 
-            <TabsContent value="dashboard" className="mt-0">
-              <Dashboard machines={machines} productionRecords={productionRecords} />
-            </TabsContent>
+              {currentUser?.role === 'manager' && (
+                <TabsContent value="dashboard">
+                  <Dashboard
+                    machines={machines}
+                    productionRecords={productionRecords}
+                  />
+                </TabsContent>
+              )}
 
-            <TabsContent value="entry" className="mt-0">
-              <DataEntry machines={machines} onAddRecord={addProductionRecord} currentUser={currentUser} loginTimestamp={loginTimestamp} />
-            </TabsContent>
+              <TabsContent value="entry">
+                <DataEntry
+                  machines={machines}
+                  onAddRecord={addProductionRecord}
+                  currentUser={currentUser}
+                  loginTimestamp={loginTimestamp}
+                />
+              </TabsContent>
 
-            <TabsContent value="history" className="mt-0">
-              <HistoricalData productionRecords={productionRecords} machines={machines} onDeleteRecord={deleteProductionRecord} userRole={currentUser?.role || 'operator'} />
-            </TabsContent>
+              {currentUser?.role === 'manager' && (
+                <>
+                  <TabsContent value="history">
+                    <HistoricalData
+                      productionRecords={productionRecords}
+                      machines={machines}
+                      onDeleteRecord={deleteProductionRecord}
+                      userRole={currentUser?.role || 'operator'}
+                    />
+                  </TabsContent>
 
-            <TabsContent value="machines" className="mt-0">
-              <MachineManagement machines={machines} productionRecords={productionRecords} onUpdateMachine={updateMachine} onAddMachine={addMachine} onDeleteMachine={deleteMachine} userRole={currentUser?.role || 'operator'} />
-            </TabsContent>
-          </Tabs>
+                  <TabsContent value="machines">
+                    <MachineManagement
+                      machines={machines}
+                      productionRecords={productionRecords}
+                      onUpdateMachine={updateMachine}
+                      onAddMachine={addMachine}
+                      onDeleteMachine={deleteMachine}
+                      userRole={currentUser?.role || 'operator'}
+                    />
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
+          </TooltipProvider>
         </main>
       </div>
-      <Toaster position="top-right" />
+      <Toaster />
     </>
   );
 }
