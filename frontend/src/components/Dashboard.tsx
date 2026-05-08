@@ -8,12 +8,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { ProductionRecord, OEEMetrics, Machine } from '@/types';
+import type { Machine, ProductionRecord, OEEMetrics } from '@/types';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Activity, CheckCircle2, AlertCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import { format, subDays, startOfDay } from 'date-fns';
-
-
 
 interface DashboardProps {
   machines: Machine[];
@@ -84,6 +82,7 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
       const machineRecords = productionRecords.filter(r => r.machineId === machine.id);
       if (machineRecords.length === 0) {
         return {
+          id: machine.id,
           name: machine.name,
           oee: 0,
           availability: 0,
@@ -103,6 +102,7 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
 
       const count = metricsArray.length;
       return {
+        id: machine.id,
         name: machine.name,
         oee: avg.oee / count,
         availability: avg.availability / count,
@@ -119,10 +119,10 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
       return format(date, 'yyyy-MM-dd');
     });
 
-    return last7Days.map(date => {
+    return last7Days.map((date, index) => {
       const dayRecords = productionRecords.filter(r => r.date === date);
       if (dayRecords.length === 0) {
-        return { date: format(new Date(date), 'MMM dd'), oee: 0, records: 0 };
+        return { id: `day-${index}`, date: format(new Date(date), 'MMM dd'), oee: 0, records: 0 };
       }
 
       const metricsArray = dayRecords.map(record => {
@@ -133,6 +133,7 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
       const avgOEE = metricsArray.reduce((sum, m) => sum + m.oee, 0) / metricsArray.length;
 
       return {
+        id: `day-${index}`,
         date: format(new Date(date), 'MMM dd'),
         oee: avgOEE,
         records: dayRecords.length,
@@ -147,9 +148,9 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
     });
 
     return [
-      { name: 'Morning', value: shifts.morning },
-      { name: 'Afternoon', value: shifts.afternoon },
-      { name: 'Night', value: shifts.night },
+      { id: 'shift-morning', name: 'Morning', value: shifts.morning },
+      { id: 'shift-afternoon', name: 'Afternoon', value: shifts.afternoon },
+      { id: 'shift-night', name: 'Night', value: shifts.night },
     ];
   }, [productionRecords]);
 
@@ -319,6 +320,7 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
                 <RechartsTooltip />
                 <Legend />
                 <Line
+                  key="oee-trend-line"
                   type="monotone"
                   dataKey="oee"
                   stroke="#3b82f6"
@@ -343,7 +345,7 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
                 <YAxis domain={[0, 100]} />
                 <RechartsTooltip />
                 <Legend />
-                <Bar dataKey="oee" fill="#3b82f6" name="OEE %" />
+                <Bar key="machine-oee-bar" dataKey="oee" fill="#3b82f6" name="OEE %" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -358,19 +360,19 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
                 data={[
-                  { metric: 'Availability', value: overallMetrics.availability },
-                  { metric: 'Performance', value: overallMetrics.performance },
-                  { metric: 'Quality', value: overallMetrics.quality },
+                  { id: 'availability', metric: 'Availability', value: overallMetrics.availability },
+                  { id: 'performance', metric: 'Performance', value: overallMetrics.performance },
+                  { id: 'quality', metric: 'Quality', value: overallMetrics.quality },
                 ]}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="metric" />
                 <YAxis domain={[0, 100]} />
                 <RechartsTooltip />
-                <Bar dataKey="value" name="Percentage">
-                  {['Availability', 'Performance', 'Quality'].map((metric, index) => (
-                    <Cell key={`breakdown-${metric}`} fill={COLORS[index]} />
-                  ))}
+                <Bar key="oee-components-bar" dataKey="value" name="Percentage">
+                  <Cell key="availability" fill={COLORS[0]} />
+                  <Cell key="performance" fill={COLORS[1]} />
+                  <Cell key="quality" fill={COLORS[2]} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -386,17 +388,17 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
+                  key="shift-distribution-pie"
                   data={shiftDistribution}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}`}
                   outerRadius={100}
-                  fill="#8884d8"
                   dataKey="value"
                 >
-                  {shiftDistribution.map((entry, index) => (
-                    <Cell key={`shift-${entry.name}`} fill={COLORS[index % COLORS.length]} />
+                  {shiftDistribution.map((entry) => (
+                    <Cell key={entry.id} fill={COLORS[shiftDistribution.indexOf(entry) % COLORS.length]} />
                   ))}
                 </Pie>
                 <RechartsTooltip />

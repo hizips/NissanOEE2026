@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import type { Machine, ProductionRecord, OEEMetrics } from '@/types';
-import { Settings, Plus, Edit2, Trash2, Save, X, Activity, TrendingUp, AlertCircle, Shield } from 'lucide-react';
+import type { Machine, ProductionRecord, OEEMetrics, Part } from '@/types';
+import { Settings, Plus, Edit2, Trash2, Save, X, Activity, TrendingUp, AlertCircle, Shield, Factory, Package } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 interface MachineManagementProps {
   machines: Machine[];
   productionRecords: ProductionRecord[];
+  parts: Part[];
   onUpdateMachine: (id: string, updates: Partial<Machine>) => void;
   onAddMachine: (machine: Omit<Machine, 'id'>) => void;
   onDeleteMachine: (id: string) => void;
@@ -40,6 +41,7 @@ interface MachineStats {
 export function MachineManagement({
   machines,
   productionRecords,
+  parts,
   onUpdateMachine,
   onAddMachine,
   onDeleteMachine,
@@ -52,14 +54,24 @@ export function MachineManagement({
 
   const [newMachine, setNewMachine] = useState({
     name: '',
+    machineId: '',
+    type: 'casting' as Machine['type'],
     idealCycleTime: 2.5,
+    defaultShiftTime: 480,
     status: 'idle' as Machine['status'],
+    supportedParts: [] as string[],
+    active: true,
   });
 
   const [editForm, setEditForm] = useState({
     name: '',
+    machineId: '',
+    type: 'casting' as Machine['type'],
     idealCycleTime: 2.5,
+    defaultShiftTime: 480,
     status: 'idle' as Machine['status'],
+    supportedParts: [] as string[],
+    active: true,
   });
 
   const calculateOEE = (record: ProductionRecord, machine: Machine): number => {
@@ -118,14 +130,28 @@ export function MachineManagement({
       return;
     }
 
-    if (newMachine.idealCycleTime <= 0) {
-      toast.error('Ideal cycle time must be greater than 0');
+    if (!newMachine.machineId.trim()) {
+      toast.error('Machine ID is required');
+      return;
+    }
+
+    if (newMachine.supportedParts.length === 0) {
+      toast.error('Please select at least one supported part');
       return;
     }
 
     onAddMachine(newMachine);
     toast.success('Machine added successfully');
-    setNewMachine({ name: '', idealCycleTime: 2.5, status: 'idle' });
+    setNewMachine({
+      name: '',
+      machineId: '',
+      type: 'casting',
+      idealCycleTime: 2.5,
+      defaultShiftTime: 480,
+      status: 'idle',
+      supportedParts: [],
+      active: true,
+    });
     setIsAdding(false);
   };
 
@@ -133,8 +159,13 @@ export function MachineManagement({
     setEditingId(machine.id);
     setEditForm({
       name: machine.name,
+      machineId: machine.machineId,
+      type: machine.type,
       idealCycleTime: machine.idealCycleTime,
+      defaultShiftTime: machine.defaultShiftTime || 480,
       status: machine.status,
+      supportedParts: machine.supportedParts || [],
+      active: machine.active,
     });
   };
 
@@ -144,8 +175,13 @@ export function MachineManagement({
       return;
     }
 
-    if (editForm.idealCycleTime <= 0) {
-      toast.error('Ideal cycle time must be greater than 0');
+    if (!editForm.machineId.trim()) {
+      toast.error('Machine ID is required');
+      return;
+    }
+
+    if (editForm.supportedParts.length === 0) {
+      toast.error('Please select at least one supported part');
       return;
     }
 
@@ -194,7 +230,7 @@ export function MachineManagement({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -221,7 +257,7 @@ export function MachineManagement({
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   <h3 className="font-semibold">New Machine</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="new-name">Machine Name *</Label>
                       <Input
@@ -232,15 +268,30 @@ export function MachineManagement({
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="new-cycle-time">Ideal Cycle Time (min) *</Label>
+                      <Label htmlFor="new-machine-id">Machine ID *</Label>
                       <Input
-                        id="new-cycle-time"
-                        type="number"
-                        step="0.1"
-                        min="0.1"
-                        value={newMachine.idealCycleTime}
-                        onChange={(e) => setNewMachine({ ...newMachine, idealCycleTime: parseFloat(e.target.value) })}
+                        id="new-machine-id"
+                        value={newMachine.machineId}
+                        onChange={(e) => setNewMachine({ ...newMachine, machineId: e.target.value })}
+                        placeholder="e.g., M-CAST-001"
                       />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-type">Machine Type *</Label>
+                      <Select
+                        value={newMachine.type}
+                        onValueChange={(value: Machine['type']) => setNewMachine({ ...newMachine, type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="casting">Casting Machine</SelectItem>
+                          <SelectItem value="machining">Machining Machine</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-status">Initial Status</Label>
@@ -260,12 +311,71 @@ export function MachineManagement({
                       </Select>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-default-shift-time">Default Shift Time (minutes) *</Label>
+                    <Input
+                      id="new-default-shift-time"
+                      type="number"
+                      min="1"
+                      value={newMachine.defaultShiftTime}
+                      onChange={(e) => setNewMachine({ ...newMachine, defaultShiftTime: parseInt(e.target.value) || 480 })}
+                      placeholder="480 (8 hours)"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Default planned production time per shift (e.g., 480 min = 8 hours, 720 min = 12 hours)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-supported-parts">Supported Parts *</Label>
+                    <div className="border rounded-lg p-4 bg-slate-50 max-h-48 overflow-y-auto">
+                      <div className="grid grid-cols-2 gap-2">
+                        {parts.filter(p => p.active).map(part => (
+                          <label
+                            key={part.id}
+                            className="flex items-center gap-2 p-2 hover:bg-white rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={newMachine.supportedParts.includes(part.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewMachine({
+                                    ...newMachine,
+                                    supportedParts: [...newMachine.supportedParts, part.id],
+                                  });
+                                } else {
+                                  setNewMachine({
+                                    ...newMachine,
+                                    supportedParts: newMachine.supportedParts.filter(id => id !== part.id),
+                                  });
+                                }
+                              }}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-sm">{part.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Selected: {newMachine.supportedParts.length} part{newMachine.supportedParts.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
                       onClick={() => {
                         setIsAdding(false);
-                        setNewMachine({ name: '', idealCycleTime: 2.5, status: 'idle' });
+                        setNewMachine({
+                          name: '',
+                          machineId: '',
+                          type: 'casting',
+                          idealCycleTime: 2.5,
+                          defaultShiftTime: 480,
+                          status: 'idle',
+                          supportedParts: [],
+                          active: true,
+                        });
                       }}
                       className="gap-2"
                     >
@@ -297,7 +407,7 @@ export function MachineManagement({
                     <CardContent className="pt-6">
                       {editingId === machine.id ? (
                         <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>Machine Name *</Label>
                               <Input
@@ -306,14 +416,28 @@ export function MachineManagement({
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Ideal Cycle Time (min) *</Label>
+                              <Label>Machine ID *</Label>
                               <Input
-                                type="number"
-                                step="0.1"
-                                min="0.1"
-                                value={editForm.idealCycleTime}
-                                onChange={(e) => setEditForm({ ...editForm, idealCycleTime: parseFloat(e.target.value) })}
+                                value={editForm.machineId}
+                                onChange={(e) => setEditForm({ ...editForm, machineId: e.target.value })}
                               />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Machine Type *</Label>
+                              <Select
+                                value={editForm.type}
+                                onValueChange={(value: Machine['type']) => setEditForm({ ...editForm, type: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="casting">Casting Machine</SelectItem>
+                                  <SelectItem value="machining">Machining Machine</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="space-y-2">
                               <Label>Status</Label>
@@ -332,6 +456,54 @@ export function MachineManagement({
                                 </SelectContent>
                               </Select>
                             </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Default Shift Time (minutes) *</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={editForm.defaultShiftTime}
+                              onChange={(e) => setEditForm({ ...editForm, defaultShiftTime: parseInt(e.target.value) || 480 })}
+                            />
+                            <p className="text-xs text-slate-500">
+                              Default planned production time per shift (e.g., 480 min = 8 hours, 720 min = 12 hours)
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Supported Parts *</Label>
+                            <div className="border rounded-lg p-4 bg-slate-50 max-h-48 overflow-y-auto">
+                              <div className="grid grid-cols-2 gap-2">
+                                {parts.filter(p => p.active).map(part => (
+                                  <label
+                                    key={part.id}
+                                    className="flex items-center gap-2 p-2 hover:bg-white rounded cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={editForm.supportedParts.includes(part.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setEditForm({
+                                            ...editForm,
+                                            supportedParts: [...editForm.supportedParts, part.id],
+                                          });
+                                        } else {
+                                          setEditForm({
+                                            ...editForm,
+                                            supportedParts: editForm.supportedParts.filter(id => id !== part.id),
+                                          });
+                                        }
+                                      }}
+                                      className="h-4 w-4"
+                                    />
+                                    <span className="text-sm">{part.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Selected: {editForm.supportedParts.length} part{editForm.supportedParts.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
                           <div className="flex justify-end gap-2">
                             <Button
@@ -358,8 +530,12 @@ export function MachineManagement({
                               </div>
                               <div className="flex flex-wrap gap-4 text-sm text-slate-600">
                                 <div className="flex items-center gap-1">
-                                  <Activity className="h-4 w-4" />
-                                  <span>Ideal Cycle Time: <strong>{machine.idealCycleTime} min</strong></span>
+                                  <Factory className="h-4 w-4" />
+                                  <span>Type: <strong className="capitalize">{machine.type === 'casting' ? 'Casting Machine' : 'Machining Machine'}</strong></span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Package className="h-4 w-4" />
+                                  <span>Supported Parts: <strong>{machine.supportedParts?.length || 0}</strong></span>
                                 </div>
                                 {stats && stats.totalRecords > 0 && (
                                   <>

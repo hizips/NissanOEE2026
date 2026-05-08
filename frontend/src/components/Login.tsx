@@ -27,11 +27,6 @@ export function Login({ onLogin }: LoginProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!employeeId.trim()) {
-      toast.error('Employee ID is required');
-      return;
-    }
-
     if (!password.trim()) {
       toast.error('Password is required');
       return;
@@ -43,18 +38,19 @@ export function Login({ onLogin }: LoginProps) {
     setTimeout(() => {
       // Demo credentials - in production this would call a real auth API
       const validCredentials = [
-        { id: 'OP001', password: 'operator123', role: 'operator' as const },
-        { id: 'MGR001', password: 'manager123', role: 'manager' as const },
-        { id: 'demo', password: 'demo', role: role },
+        { password: 'operator', role: 'operator' as const },
+        { password: 'manager', role: 'manager' as const },
+        { password: 'demo', role: role },
       ];
 
       const isValid = validCredentials.some(
-        cred => cred.id === employeeId && cred.password === password
+        cred => cred.password === password && cred.role === role
       );
 
       if (isValid) {
         toast.success('Login successful!');
-        onLogin(employeeId, role);
+        // For operator role, use "operator" as the ID, otherwise use manager ID
+        onLogin(role === 'operator' ? 'operator' : employeeId || 'manager', role);
       } else {
         toast.error('Invalid credentials. Please try again.');
         setIsLoading(false);
@@ -73,7 +69,7 @@ export function Login({ onLogin }: LoginProps) {
               <Factory className="w-12 h-12 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">OEE Management System</h1>
+          <p className="text-4xl font-bold text-white mb-2">OEE Management System</p>
           <p className="text-slate-400 text-lg">Casting Factory Production Monitoring</p>
         </div>
 
@@ -87,48 +83,12 @@ export function Login({ onLogin }: LoginProps) {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="employeeId" className="text-slate-200 text-sm font-semibold">
-                  Employee ID
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input
-                    id="employeeId"
-                    type="text"
-                    placeholder="Enter your employee ID"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    className="pl-11 h-12 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200 text-sm font-semibold">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11 h-12 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="role" className="text-slate-200 text-sm font-semibold flex items-center gap-2">
                   <Shield className="h-4 w-4" />
                   Role
                 </Label>
                 <Select value={role} onValueChange={(value: 'operator' | 'manager') => setRole(value)} disabled={isLoading}>
-                  <SelectTrigger id="role" className="h-12 bg-slate-900/50 border-slate-600 text-white focus:border-blue-500">
+                  <SelectTrigger id="role" className="h-14 bg-slate-900/50 border-slate-600 text-white focus:border-blue-500 text-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -146,6 +106,44 @@ export function Login({ onLogin }: LoginProps) {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {role === 'manager' && (
+                <div className="space-y-2">
+                  <Label htmlFor="employeeId" className="text-slate-200 text-sm font-semibold">
+                    Manager ID
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <Input
+                      id="employeeId"
+                      type="text"
+                      placeholder="Enter your manager ID"
+                      value={employeeId}
+                      onChange={(e) => setEmployeeId(e.target.value)}
+                      className="pl-11 h-12 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-200 text-sm font-semibold">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-11 h-12 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
 
               <Button
@@ -172,16 +170,16 @@ export function Login({ onLogin }: LoginProps) {
                 <p className="text-xs font-semibold text-slate-300 mb-2">Demo Credentials:</p>
                 <div className="space-y-1 text-xs text-slate-400 font-mono">
                   <div className="flex justify-between">
-                    <span>Operator:</span>
-                    <span className="text-blue-400">OP001 / operator123</span>
+                    <span>Operator (shared):</span>
+                    <span className="text-blue-400">operator</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Manager:</span>
-                    <span className="text-purple-400">MGR001 / manager123</span>
+                    <span className="text-purple-400">manager</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Quick Demo:</span>
-                    <span className="text-green-400">demo / demo</span>
+                    <span className="text-green-400">demo</span>
                   </div>
                 </div>
               </div>

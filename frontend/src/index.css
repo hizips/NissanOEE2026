@@ -18,6 +18,7 @@
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
+  color: var(--text);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -34,8 +35,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
+    --text: #0f172a;
+    --text-h: #020617;
     --bg: #16171d;
     --border: #2e303a;
     --code-bg: #1f2028;
@@ -53,15 +54,13 @@
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;             /* Use 100% of the screen */
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  margin: 0;               /* Remove auto margins */
+  border: none;           /* Remove the vertical side borders */
 }
 
 body {
@@ -76,9 +75,10 @@ h2 {
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+    font-size: 2.5rem;
+    letter-spacing: -0.05em;
+    margin: 0; /* Changed from 32px 0 */
+    line-height: 1.2;
   @media (max-width: 1024px) {
     font-size: 36px;
     margin: 20px 0;
