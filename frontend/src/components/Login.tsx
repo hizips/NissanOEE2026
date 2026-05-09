@@ -28,7 +28,12 @@ export function Login({ onLogin }: LoginProps) {
     e.preventDefault();
 
     if (!password.trim()) {
-      toast.error('Password is required');
+      toast.error('Password is required.', {
+          style: {
+              background: '#ef4444', // Red background for error
+              color: '#ffffff',      // Solid white text
+          },
+      });
       return;
     }
 
@@ -52,8 +57,13 @@ export function Login({ onLogin }: LoginProps) {
         // For operator role, use "operator" as the ID, otherwise use manager ID
         onLogin(role === 'operator' ? 'operator' : employeeId || 'manager', role);
       } else {
-        toast.error('Invalid credentials. Please try again.');
-        setIsLoading(false);
+          toast.error('Invalid credentials. Please try again.', {
+              style: {
+                  background: '#ef4444', // Red background for error
+                  color: '#ffffff',      // Solid white text
+              },
+          });
+          setIsLoading(false);
       }
     }, 800);
   };

@@ -76,14 +76,14 @@ export function PartSelector({ parts, selectedPart, onSelectPart, cycleTime }: P
       </div>
 
       {/* Scrollable Part Cards Container */}
-      <div
-        ref={scrollContainerRef}
-        className="flex gap-4 overflow-x-auto pb-4 scroll-smooth hide-scrollbar snap-x snap-mandatory"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
-      >
+          <div
+                  ref={scrollContainerRef}
+                  className="flex gap-4 overflow-x-auto py-6 px-4 scroll-smooth hide-scrollbar snap-x snap-mandatory overflow-y-visible"
+                  style={{
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                >
         {parts.map((part) => {
           const isSelected = part === selectedPart;
           const visual = partVisuals[part] || { gradient: 'from-slate-600 to-slate-800', icon: '📦' };

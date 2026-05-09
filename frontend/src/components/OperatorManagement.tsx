@@ -118,7 +118,7 @@ export function OperatorManagement({ operators, onAddOperator, onUpdateOperator,
                 <CardDescription>Manage operators and their information</CardDescription>
               </div>
             </div>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Button onClick={() => handleOpenDialog()} className="bg-slate-950 text-white hover:bg-slate-800 gap-2 px-4 shadow-sm">
               <Plus className="h-4 w-4" />
               Add Operator
             </Button>

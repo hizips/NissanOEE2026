@@ -579,6 +579,20 @@ export default function App() {
       </>
     );
   }
+    
+const updatePartProductionHistory = (id: string, updates: Partial<PartProductionHistory>) => {
+  setPartProductionHistory(prev =>
+    prev.map(record => (record.id === id ? { ...record, ...updates } : record))
+  );
+  toast.success('Production record updated in place');
+};
+
+const updateDowntimeEventHistory = (id: string, updates: Partial<DowntimeEventHistory>) => {
+  setDowntimeEventHistory(prev =>
+    prev.map(event => (event.id === id ? { ...event, ...updates } : event))
+  );
+  toast.success('Downtime event updated in place');
+};
 
     return (
       <>
@@ -644,7 +658,7 @@ export default function App() {
           <main className="max-w-7xl mx-auto px-6 py-8">
             <Tabs defaultValue={currentUser?.role === 'operator' ? 'entry' : 'dashboard'} className="space-y-6">
                 {currentUser?.role === 'manager' ? (
-                  <TabsList className="grid w-full grid-cols-7 max-w-6xl h-14">
+                  <TabsList className="grid w-full grid-cols-7 h-14 shadow-sm border border-slate-200">
                     <TabsTrigger value="dashboard" className="text-base h-full">Dashboard</TabsTrigger>
                     <TabsTrigger value="history" className="text-base h-full">History</TabsTrigger>
                     <TabsTrigger value="operators" className="text-base h-full">Operators</TabsTrigger>
@@ -682,6 +696,8 @@ export default function App() {
                         onDeleteRecord={deleteProductionRecord}
                         onDeletePartHistory={deletePartProductionHistory}
                         onDeleteDowntimeEvent={deleteDowntimeEventHistory}
+                        onUpdatePartHistory={updatePartProductionHistory}
+                        onUpdateDowntimeEvent={updateDowntimeEventHistory}
                         userRole={currentUser?.role || 'operator'}
                       />
                     </TabsContent>
@@ -751,6 +767,8 @@ export default function App() {
                   <TabsContent value="entry">
                     <DataEntry
                       machines={machines}
+                      defectReasons={defectReasons}
+                      onUpdatePartHistory={updatePartProductionHistory}
                       onAddRecord={addProductionRecord}
                       onAddPartHistory={addPartProductionHistory}
                       onAddDowntimeEvent={addDowntimeEventHistory}

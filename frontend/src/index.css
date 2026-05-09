@@ -111,3 +111,9 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0) !important;
+    opacity: 1;
+    cursor: pointer;
+}

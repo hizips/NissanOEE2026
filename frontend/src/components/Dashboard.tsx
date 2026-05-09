@@ -216,7 +216,7 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
   }, [machines, productionRecords, machinePerformance, overallMetrics]);
 
   return (
-    <div className="space-y-6">
+    <div className="bg-white space-y-6">
       {alerts.length > 0 && (
         <div className="space-y-2">
           {alerts.map((alert, index) => (
@@ -227,8 +227,8 @@ export function Dashboard({ machines, productionRecords }: DashboardProps) {
                 alert.type === 'critical'
                   ? 'border-red-600 bg-red-50'
                   : alert.type === 'warning'
-                  ? 'border-yellow-600 bg-yellow-50'
-                  : 'border-green-600 bg-green-50'
+                    ? 'border-yellow-600 bg-yellow-50'
+                    : 'border-green-600 bg-green-50'
               }
             >
               <div className="flex items-center gap-2">

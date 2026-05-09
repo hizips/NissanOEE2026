@@ -144,7 +144,7 @@ export function ProcessReasonManager({
                 Configure general production issue reasons for shift comments, excluded shots, and process notes
               </CardDescription>
             </div>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Button onClick={() => handleOpenDialog()} className="bg-slate-950 text-white hover:bg-slate-800 gap-2 px-4 shadow-sm">
               <Plus className="h-4 w-4" />
               Add Process Reason
             </Button>
@@ -266,28 +266,36 @@ export function ProcessReasonManager({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Filter by Machine Type</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={formData.machineTypes.includes('casting') ? 'default' : 'outline'}
-                  onClick={() => toggleMachineType('casting')}
-                  className="flex-1"
-                >
-                  Casting
-                </Button>
-                <Button
-                  type="button"
-                  variant={formData.machineTypes.includes('machining') ? 'default' : 'outline'}
-                  onClick={() => toggleMachineType('machining')}
-                  className="flex-1"
-                >
-                  Machining
-                </Button>
-              </div>
-              <p className="text-xs text-slate-500">Leave empty to show for all machine types</p>
+          <div className="space-y-2">
+            <Label>Filter by Machine Type</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={formData.machineTypes.includes('casting') ? 'default' : 'outline'}
+                onClick={() => toggleMachineType('casting')}
+                className={`flex-1 transition-colors ${
+                  formData.machineTypes.includes('casting') 
+                    ? 'bg-slate-950 text-white hover:bg-slate-800' 
+                    : ''
+                }`}
+              >
+                Casting
+              </Button>
+              <Button
+                type="button"
+                variant={formData.machineTypes.includes('machining') ? 'default' : 'outline'}
+                onClick={() => toggleMachineType('machining')}
+                className={`flex-1 transition-colors ${
+                  formData.machineTypes.includes('machining') 
+                    ? 'bg-slate-950 text-white hover:bg-slate-800' 
+                    : ''
+                }`}
+              >
+                Machining
+              </Button>
             </div>
+            <p className="text-xs text-slate-500">Leave empty to show for all machine types</p>
+          </div>
 
             <div className="space-y-2">
               <Label>Filter by Specific Machines</Label>

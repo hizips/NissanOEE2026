@@ -131,15 +131,9 @@ export function DowntimeReasonSelector({ value, onChange }: DowntimeReasonSelect
     : [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-1">
       <div className="mb-3 bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-        <Label className="text-base font-semibold mb-2 block text-blue-900">Downtime Reason (Flexible Selection)</Label>
-        <p className="text-sm text-blue-800 mb-2">
-          Select levels progressively to identify the cause.
-        </p>
-        <p className="text-sm font-semibold text-blue-700">
-          ℹ️ You may stop at any level if deeper cause is unknown.
-        </p>
+        <Label className="text-base font-semibold mb-2 block text-blue-900">Downtime Reason </Label>
       </div>
 
       {/* Level 1: Category */}

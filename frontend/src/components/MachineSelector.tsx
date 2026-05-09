@@ -78,14 +78,14 @@ export function MachineSelector({ machines, selectedMachineId, onSelectMachine }
         </div>
 
         {/* Scrollable Machine Cards Container */}
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-4 overflow-x-auto pb-4 scroll-smooth hide-scrollbar snap-x snap-mandatory"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
+          <div
+                    ref={scrollContainerRef}
+                    className="flex gap-4 overflow-x-auto py-6 px-4 scroll-smooth hide-scrollbar snap-x snap-mandatory overflow-y-visible"
+                    style={{
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                    }}
+                  >
           {machines.map((machine) => {
             const isSelected = machine.id === selectedMachineId;
             const visual = machineVisuals[machine.name] || { gradient: 'from-slate-600 to-slate-800', icon: '⚙️' };

@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import type { Machine, ProductionRecord, PartProductionHistory, DowntimeEventHistory } from '@/types';
+import type { Machine, ProductionRecord, PartProductionHistory, DowntimeEventHistory, DefectReason } from '@/types';
 import type { OperatorSetupData } from '@/components/OperatorSetup';
 import { DefectCategorySelector } from '@/components/DefectCategorySelector';
 import { DowntimeReasonSelector, type DowntimeReasonPath } from '@/components/DowntimeReasonSelector';
@@ -42,10 +42,12 @@ interface DataEntryProps {
   onAddRecord: (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => void;
   onAddPartHistory: (record: Omit<PartProductionHistory, 'id' | 'timestamp'>) => void;
   onAddDowntimeEvent: (event: Omit<DowntimeEventHistory, 'id' | 'timestamp'>) => void;
+  onUpdatePartHistory: (id: string, updates: Partial<PartProductionHistory>) => void;
   currentUser: { employeeId: string; role: 'operator' | 'manager' } | null;
   loginTimestamp: Date;
   operatorSetup?: OperatorSetupData;
   onEditSetup?: () => void;
+  defectReasons: DefectReason[];
   onCheckOff?: () => void;
 }
 
@@ -83,17 +85,20 @@ export function DataEntry({
   onAddRecord,
   onAddPartHistory,
   onAddDowntimeEvent,
+  onUpdatePartHistory, // Keep this
   currentUser,
   loginTimestamp,
   operatorSetup,
   onEditSetup,
   onCheckOff,
+  defectReasons,
 }: DataEntryProps) {
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [showDefectSelector, setShowDefectSelector] = useState(false);
   const [currentDefect, setCurrentDefect] = useState<{
     category: string;
     subcategory: string;
+    specificReason?: string; // Add this
     comment?: string;
   } | null>(null);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
@@ -145,7 +150,7 @@ export function DataEntry({
         block: 'start',
         inline: 'nearest'
       });
-    }, 150);
+    }, 10);
 
     // Add brief highlight effect
     setInspectionHighlight(true);
@@ -584,18 +589,49 @@ export function DataEntry({
     });
   };
 
-  if (!operatorSetup) {
-    return (
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Setup Required</CardTitle>
-          <CardDescription>
-            Please complete operator setup before starting production data entry.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
+    // Find this block around line 476
+    if (!operatorSetup) {
+      return (
+        <Card className="max-w-2xl mx-auto border-4 border-amber-500 shadow-2xl">
+          <CardHeader className="bg-amber-50">
+            <div className="flex items-center gap-4">
+              <AlertCircle className="h-12 w-12 text-amber-600" />
+              <div>
+                <CardTitle className="text-2xl">Setup Required</CardTitle>
+                <CardDescription className="text-lg text-amber-800">
+                  Please complete operator setup before starting production data entry.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <p className="text-slate-600">
+              Your session may have timed out or the page was refreshed. You need to re-verify your machine and part selection to continue.
+            </p>
+            <div className="flex gap-4">
+              {/* Add this button to allow returning to setup without logging out */}
+              <Button
+                onClick={onEditSetup}
+                className="flex-1 h-16 text-xl bg-blue-600 hover:bg-blue-700"
+              >
+                <RefreshCw className="h-6 w-6 mr-2" />
+                Return to Setup
+              </Button>
+              
+              {/* Optional: Add logout if they want to switch operators entirely */}
+              <Button
+                onClick={onCheckOff}
+                variant="outline"
+                className="h-16 px-8 border-2 border-slate-300"
+              >
+                <LogOut className="h-6 w-6 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -673,7 +709,8 @@ export function DataEntry({
       </div>
 
       {/* Current Part Inspection */}
-      <div ref={inspectionSectionRef}>
+      <div ref={inspectionSectionRef} className="scroll-mt-[200px]">
+          
         <Card
           className={`border-4 shadow-2xl transition-all duration-500 ${
             inspectionHighlight
@@ -721,10 +758,14 @@ export function DataEntry({
                 </div>
               </div>
 
-              <DefectCategorySelector
-                value={currentDefect}
-                onChange={setCurrentDefect}
-              />
+               <DefectCategorySelector
+                 defectReasons={defectReasons}
+                 machineId={operatorSetup.machineId}
+                 machineType={machines.find(m => m.id === operatorSetup.machineId)?.type || ''}
+                 partId={operatorSetup.partId || ''}
+                 value={currentDefect}
+                 onChange={setCurrentDefect}
+               />
 
               <div className="flex gap-4">
                 <Button
@@ -904,39 +945,27 @@ export function DataEntry({
           </CardContent>
         ) : (
           <>
-            <CardHeader className="bg-yellow-50">
-              <CardTitle className="text-2xl flex items-center gap-3">
-                <AlertTriangle className="h-7 w-7 text-yellow-600" />
-                {editingDowntimeId ? 'Edit Downtime Event' : 'Record Downtime Event'}
-              </CardTitle>
-              <CardDescription className="text-base">
-                Enter start time, end time, and select downtime reason
-              </CardDescription>
-            </CardHeader>
+             <CardHeader className="bg-yellow-50">
+               <div className="flex items-center justify-between gap-4">
+                 <div className="space-y-1">
+                   <CardTitle className="text-2xl flex items-center gap-3">
+                     <AlertTriangle className="h-7 w-7 text-yellow-600" />
+                     {editingDowntimeId ? 'Edit Downtime Event' : 'Record Downtime Event'}
+                   </CardTitle>
+                   <CardDescription className="text-base">
+                     Enter start time, end time, and select downtime reason
+                   </CardDescription>
+                 </div>
+                 {/* New Clock Display in Header */}
+                 <div className="bg-white rounded-lg px-4 py-2 border-2 border-yellow-400 flex-shrink-0 shadow-sm">
+                   <div className="text-[10px] uppercase tracking-wider text-yellow-600 font-bold mb-0.5">Current Time</div>
+                   <div className="text-2xl font-bold text-slate-800 font-mono">
+                     {format(currentTime, 'HH:mm:ss')}
+                   </div>
+                 </div>
+               </div>
+             </CardHeader>
             <CardContent className="pt-6 space-y-6">
-              {/* Quick Guide */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="bg-blue-500 rounded-full p-2 flex-shrink-0">
-                      <Clock className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-blue-900 mb-1">Quick Timestamp Entry</h4>
-                      <p className="text-sm text-blue-800">
-                        Click <strong>"Use Current Time"</strong> buttons to auto-fill with system time - no typing needed!
-                        Duration calculates automatically.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg px-4 py-2 border-2 border-blue-400 flex-shrink-0">
-                    <div className="text-xs text-blue-600 font-semibold mb-1">Current Time</div>
-                    <div className="text-2xl font-bold text-blue-900 font-mono">
-                      {format(currentTime, 'HH:mm:ss')}
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Time Inputs */}
               <div className="grid grid-cols-3 gap-6">

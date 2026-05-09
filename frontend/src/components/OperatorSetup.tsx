@@ -167,7 +167,7 @@ export function OperatorSetup({ machines, operators, parts, onStartWork, existin
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-8 space-y-8">
+          <CardContent className="pt-8 pb-12 px-8 space-y-12 overflow-visible">
             {/* Current Date & Shift */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">

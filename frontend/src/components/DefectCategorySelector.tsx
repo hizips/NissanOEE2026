@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,77 +6,93 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle } from 'lucide-react';
+import type { DefectReason } from '@/types'; // Import your type
 
 interface DefectCategorySelectorProps {
+  defectReasons: DefectReason[]; // New prop
+  machineId: string;           // New prop
+  machineType: string;         // New prop
+  partId: string;              // New prop
   value: {
     category: string;
     subcategory: string;
+    specificReason?: string;
     comment?: string;
   } | null;
-  onChange: (value: {
-    category: string;
-    subcategory: string;
-    comment?: string;
-  } | null) => void;
+  onChange: (value: any) => void;
 }
 
-const DEFECT_CATEGORIES = {
-  Casting: [
-    'Crack',
-    'Porosity',
-    'Pan seal FIPG Face',
-    'Cover seal FIPG Face',
-    'UVW Cover gasket face',
-    'LV Connector Seal',
-    'UVW Connector face',
-    'PN Connector face',
-    'A/C Connector seal face',
-    'Motor Mounting Bosses',
-    'Lower Bolt Flange',
-    'Upper Bolt Flange',
-    'Upper Side Thread Hole',
-    'Lower Side Thread Hole',
-    'PM Face',
-    'General',
-    'Coldshut',
-    'Gate break',
-    'Inclusion',
-    'Chipping',
-    'NCU',
-    'Laser Mark Defects',
-    'Others',
-  ],
-  Machining: [
-    'Dimensional',
-    'Handling',
-    'Misload',
-    'Tool breakage',
-    'Chatter',
-    'Double Machine',
-    'Swarf Damage',
-    'Others',
-  ],
-};
-
-export function DefectCategorySelector({ value, onChange }: DefectCategorySelectorProps) {
+export function DefectCategorySelector({
+  defectReasons,
+  machineId,
+  machineType,
+  partId,
+  value,
+  onChange
+}: DefectCategorySelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(value?.category || '');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>(value?.subcategory || '');
   const [comment, setComment] = useState<string>(value?.comment || '');
 
-  const handleCategoryClick = (category: string) => {
-    setSelectedCategory(category);
-    setSelectedSubcategory('');
-    onChange(null);
-  };
+  // Filter reasons based on current machine and part setup
+  const availableReasons = useMemo(() => {
+    return defectReasons.filter(reason => {
+      if (!reason.active) return false;
 
-  const handleSubcategoryClick = (subcategory: string) => {
-    setSelectedSubcategory(subcategory);
-    onChange({
-      category: selectedCategory,
-      subcategory,
-      comment: comment || undefined,
+      // Filter by Machine Type
+      const matchesType = !reason.machineTypes ||
+                         reason.machineTypes.length === 0 ||
+                         reason.machineTypes.includes(machineType as any);
+
+      // Filter by Specific Machine
+      const matchesMachine = !reason.machineIds ||
+                            reason.machineIds.length === 0 ||
+                            reason.machineIds.includes(machineId);
+
+      // Filter by Specific Part
+      const matchesPart = !reason.partIds ||
+                         reason.partIds.length === 0 ||
+                         reason.partIds.includes(partId);
+
+      return matchesType && matchesMachine && matchesPart;
     });
-  };
+  }, [defectReasons, machineId, machineType, partId]);
+
+  const categories = useMemo(() =>
+    [...new Set(availableReasons.map(r => r.category))],
+  [availableReasons]);
+
+  const subcategories = useMemo(() =>
+    availableReasons.filter(r => r.category === selectedCategory),
+  [availableReasons, selectedCategory]);
+
+    const [selectedReasonId, setSelectedReasonId] = useState<string>(() => {
+      // Try to find the matching ID from the current value on load
+      if (!value) return '';
+      return defectReasons.find(r =>
+        r.category === value.category &&
+        r.subcategory === value.subcategory &&
+        r.specificReason === value.specificReason
+      )?.id || '';
+    });
+
+    const handleCategoryClick = (category: string) => {
+      setSelectedCategory(category);
+      setSelectedSubcategory('');
+      setSelectedReasonId(''); // Clear ID when switching categories
+      onChange(null);
+    };
+
+    const handleSubcategoryClick = (reason: DefectReason) => {
+      setSelectedReasonId(reason.id); // Set the specific ID
+      setSelectedSubcategory(reason.subcategory);
+      onChange({
+        category: reason.category,
+        subcategory: reason.subcategory,
+        specificReason: reason.specificReason,
+        comment: comment || undefined,
+      });
+    };
 
   const handleCommentChange = (newComment: string) => {
     setComment(newComment);
@@ -88,6 +104,8 @@ export function DefectCategorySelector({ value, onChange }: DefectCategorySelect
       });
     }
   };
+    
+    
 
   return (
     <div className="space-y-6">
@@ -97,8 +115,9 @@ export function DefectCategorySelector({ value, onChange }: DefectCategorySelect
           <CardTitle className="text-xl">1. Select Defect Category</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
+          {/* 1. Select Defect Category */}
           <div className="grid grid-cols-2 gap-4">
-            {Object.keys(DEFECT_CATEGORIES).map((category) => (
+            {categories.map((category) => ( // Use dynamic 'categories' array
               <Button
                 key={category}
                 onClick={() => handleCategoryClick(category)}
@@ -129,28 +148,35 @@ export function DefectCategorySelector({ value, onChange }: DefectCategorySelect
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
+            {/* 2. Select Defect Type */}
             <ScrollArea className="h-80">
               <div className="grid grid-cols-2 gap-3 pr-4">
-                {DEFECT_CATEGORIES[selectedCategory as keyof typeof DEFECT_CATEGORIES].map(
-                  (subcategory) => (
+                {subcategories.map((reason) => {
+                  // Use the unique ID for the check
+                  const isItemSelected = selectedReasonId === reason.id;
+
+                  return (
                     <Button
-                      key={subcategory}
-                      onClick={() => handleSubcategoryClick(subcategory)}
+                      key={reason.id}
+                      onClick={() => handleSubcategoryClick(reason)}
                       size="lg"
-                      variant={selectedSubcategory === subcategory ? 'default' : 'outline'}
+                      variant={isItemSelected ? 'default' : 'outline'}
                       className={`h-20 text-lg font-semibold ${
-                        selectedSubcategory === subcategory
+                        isItemSelected
                           ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : 'border-2 border-red-200 hover:bg-red-50 text-left justify-start'
+                          : 'border-2 border-red-200 hover:bg-red-50 text-left justify-start px-4'
                       }`}
                     >
-                      {subcategory}
-                      {selectedSubcategory === subcategory && (
+                      <div className="flex flex-col items-start leading-tight">
+                        <span>{reason.subcategory}</span>
+                        <span className="text-xs opacity-70 font-normal">{reason.specificReason}</span>
+                      </div>
+                      {isItemSelected && (
                         <Badge className="ml-auto bg-red-900">✓</Badge>
                       )}
                     </Button>
-                  )
-                )}
+                  );
+                })}
               </div>
             </ScrollArea>
           </CardContent>

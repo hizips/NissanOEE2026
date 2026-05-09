@@ -181,7 +181,7 @@ export function ScheduledDowntimeManagement({
                 <CardDescription>Pre-register planned machine stoppages for maintenance, cleaning, and servicing</CardDescription>
               </div>
             </div>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Button onClick={() => handleOpenDialog()} className="bg-slate-950 text-white hover:bg-slate-800 gap-2 px-4 shadow-sm">
               <Plus className="h-4 w-4" />
               Add Scheduled Downtime
             </Button>
@@ -381,7 +381,7 @@ export function ScheduledDowntimeManagement({
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button variant="outline" onClick={handleSubmit}>
               {editingDowntime ? 'Update' : 'Add'} Scheduled Downtime
             </Button>
           </DialogFooter>
