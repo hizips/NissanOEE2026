@@ -30,7 +30,7 @@ export function Login({ onLogin }: LoginProps) {
 
     if (!password.trim()) {
       toast.error('Password is required.', {
-          style: { background: '#ef4444', color: '#ffffff' },
+        style: { background: '#ef4444', color: '#ffffff' },
       });
       return;
     }
@@ -40,15 +40,15 @@ export function Login({ onLogin }: LoginProps) {
     try {
       const username = role === 'operator' ? 'operator' : employeeId;
       const response = await authApi.login({ username, password });
-      
+
       // Save token
       sessionStorage.setItem('oee-auth-token', response.access);
-      
+
       toast.success('Login successful!');
       onLogin(username || 'manager', role);
     } catch (error) {
       toast.error('Invalid credentials. Please try again.', {
-          style: { background: '#ef4444', color: '#ffffff' },
+        style: { background: '#ef4444', color: '#ffffff' },
       });
     } finally {
       setIsLoading(false);
@@ -161,26 +161,6 @@ export function Login({ onLogin }: LoginProps) {
                 )}
               </Button>
             </form>
-
-            <div className="mt-6 pt-6 border-t border-slate-700">
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                <p className="text-xs font-semibold text-slate-300 mb-2">Demo Credentials:</p>
-                <div className="space-y-1 text-xs text-slate-400 font-mono">
-                  <div className="flex justify-between">
-                    <span>Operator (shared):</span>
-                    <span className="text-blue-400">operator</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Manager:</span>
-                    <span className="text-purple-400">manager</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Quick Demo:</span>
-                    <span className="text-green-400">demo</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
