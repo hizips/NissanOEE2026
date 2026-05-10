@@ -212,10 +212,10 @@ export function DefectReasonManager({
                                 </Badge>
                               )}
                               {(!reason.machineTypes || reason.machineTypes.length === 0) &&
-                               (!reason.machineIds || reason.machineIds.length === 0) &&
-                               (!reason.partIds || reason.partIds.length === 0) && (
-                                <Badge variant="secondary" className="text-xs">All</Badge>
-                              )}
+                                (!reason.machineIds || reason.machineIds.length === 0) &&
+                                (!reason.partIds || reason.partIds.length === 0) && (
+                                  <Badge variant="secondary" className="text-xs">All</Badge>
+                                )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -296,37 +296,35 @@ export function DefectReasonManager({
               </div>
             </div>
 
-          <div className="space-y-2">
-            <Label>Filter by Machine Type</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                // Change variant logic to stay 'outline' or 'ghost' but force colors via className
-                variant={formData.machineTypes.includes('casting') ? 'default' : 'outline'}
-                onClick={() => toggleMachineType('casting')}
-                className={`flex-1 ${
-                  formData.machineTypes.includes('casting') 
-                    ? 'bg-slate-950 text-white hover:bg-slate-800' 
-                    : ''
-                }`}
-              >
-                Casting
-              </Button>
-              <Button
-                type="button"
-                variant={formData.machineTypes.includes('machining') ? 'default' : 'outline'}
-                onClick={() => toggleMachineType('machining')}
-                className={`flex-1 ${
-                  formData.machineTypes.includes('machining') 
-                    ? 'bg-slate-950 text-white hover:bg-slate-800' 
-                    : ''
-                }`}
-              >
-                Machining
-              </Button>
+            <div className="space-y-2">
+              <Label>Filter by Machine Type</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  // Change variant logic to stay 'outline' or 'ghost' but force colors via className
+                  variant={formData.machineTypes.includes('casting') ? 'default' : 'outline'}
+                  onClick={() => toggleMachineType('casting')}
+                  className={`flex-1 ${formData.machineTypes.includes('casting')
+                      ? 'bg-slate-950 text-white hover:bg-slate-800'
+                      : ''
+                    }`}
+                >
+                  Casting
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.machineTypes.includes('machining') ? 'default' : 'outline'}
+                  onClick={() => toggleMachineType('machining')}
+                  className={`flex-1 ${formData.machineTypes.includes('machining')
+                      ? 'bg-slate-950 text-white hover:bg-slate-800'
+                      : ''
+                    }`}
+                >
+                  Machining
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">Leave empty to show for all machine types</p>
             </div>
-            <p className="text-xs text-slate-500">Leave empty to show for all machine types</p>
-          </div>
 
             <div className="space-y-2">
               <Label>Filter by Specific Machines</Label>
@@ -383,7 +381,7 @@ export function DefectReasonManager({
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button variant="outline" onClick={handleSubmit}>
               {editingReason ? 'Update' : 'Add'} Defect Reason
             </Button>
           </DialogFooter>

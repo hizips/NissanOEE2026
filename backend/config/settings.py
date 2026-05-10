@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-e4w2lflaem9t=m#_mer*=kfnqy^ijy6767z*40gs=4xhpn%c^f"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False  # Set to False for production
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['nissanoee.duckdns.org', 'localhost', '127.0.0.1']  # Production domain added
 
 
 # Application definition
@@ -38,9 +38,28 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'rest_framework',          # Required for building the API
+    'rest_framework_simplejwt',
     'corsheaders',             # Required to allow React to talk to Django
     'production',              # The app where we defined Machines and Records
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_RENDERER_CLASSES': (
+        'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
+        'djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer',
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ),
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -87,20 +106,7 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
-]
+AUTH_PASSWORD_VALIDATORS = []
 
 
 # Internationalization
@@ -108,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Pacific/Melbourne"
 
 USE_I18N = True
 
@@ -123,4 +129,13 @@ STATIC_URL = "static/"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://nissanoee.duckdns.org",
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://nissanoee.duckdns.org",
+]
+
+# Production Static Files
+STATIC_ROOT = BASE_DIR / "staticfiles"
+

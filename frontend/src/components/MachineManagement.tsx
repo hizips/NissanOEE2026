@@ -678,7 +678,7 @@ export function MachineManagement({
       </Card>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white text-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Machine</AlertDialogTitle>
             <AlertDialogDescription>

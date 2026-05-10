@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { authApi } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,48 +25,34 @@ export function Login({ onLogin }: LoginProps) {
   const [role, setRole] = useState<'operator' | 'manager'>('operator');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!password.trim()) {
       toast.error('Password is required.', {
-          style: {
-              background: '#ef4444', // Red background for error
-              color: '#ffffff',      // Solid white text
-          },
+          style: { background: '#ef4444', color: '#ffffff' },
       });
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate authentication delay
-    setTimeout(() => {
-      // Demo credentials - in production this would call a real auth API
-      const validCredentials = [
-        { password: 'operator', role: 'operator' as const },
-        { password: 'manager', role: 'manager' as const },
-        { password: 'demo', role: role },
-      ];
-
-      const isValid = validCredentials.some(
-        cred => cred.password === password && cred.role === role
-      );
-
-      if (isValid) {
-        toast.success('Login successful!');
-        // For operator role, use "operator" as the ID, otherwise use manager ID
-        onLogin(role === 'operator' ? 'operator' : employeeId || 'manager', role);
-      } else {
-          toast.error('Invalid credentials. Please try again.', {
-              style: {
-                  background: '#ef4444', // Red background for error
-                  color: '#ffffff',      // Solid white text
-              },
-          });
-          setIsLoading(false);
-      }
-    }, 800);
+    try {
+      const username = role === 'operator' ? 'operator' : employeeId;
+      const response = await authApi.login({ username, password });
+      
+      // Save token
+      sessionStorage.setItem('oee-auth-token', response.access);
+      
+      toast.success('Login successful!');
+      onLogin(username || 'manager', role);
+    } catch (error) {
+      toast.error('Invalid credentials. Please try again.', {
+          style: { background: '#ef4444', color: '#ffffff' },
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

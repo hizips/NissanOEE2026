@@ -21,6 +21,7 @@ import { OperatorSetup, type OperatorSetupData } from '@/components/OperatorSetu
 import { OperatorManagement } from '@/components/OperatorManagement';
 import { PartManagement } from '@/components/PartManagement';
 import { ReasonManagement } from '@/components/ReasonManagement';
+import { ProductionRecordManagement } from '@/components/ProductionRecordManagement';
 import { ScheduledDowntimeManagement } from '@/components/ScheduledDowntimeManagement';
 import { Toaster } from '@/components/ui/sonner';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +29,11 @@ import { Button } from '@/components/ui/button';
 import { Factory, Clock, Calendar, LogOut, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-
+import { 
+  operatorApi, partApi, machineApi, defectReasonApi, 
+  downtimeReasonApi, processReasonApi, scheduledDowntimeApi,
+  productionRecordApi, partProductionHistoryApi, downtimeEventHistoryApi
+} from '@/services/api';
 
 // Generate realistic sample data
 const generateSampleData = (): ProductionRecord[] => {
@@ -231,259 +236,323 @@ export default function App() {
 
   const defaultScheduledDowntimes: ScheduledDowntime[] = [];
 
-  const [operators, setOperators] = useState<Operator[]>(() => {
-    const saved = localStorage.getItem('oee-operators-v2');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultOperators;
-  });
-
-  const [parts, setParts] = useState<Part[]>(() => {
-    const saved = localStorage.getItem('oee-parts-v2');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultParts;
-  });
-
-  const [machines, setMachines] = useState<Machine[]>(() => {
-    const saved = localStorage.getItem('oee-machines-v2');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultMachines;
-  });
-
-  const [defectReasons, setDefectReasons] = useState<DefectReason[]>(() => {
-    const saved = localStorage.getItem('oee-defect-reasons');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultDefectReasons;
-  });
-
-  const [downtimeReasons, setDowntimeReasons] = useState<DowntimeReasonItem[]>(() => {
-    const saved = localStorage.getItem('oee-downtime-reasons');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultDowntimeReasons;
-  });
-
-  const [processReasons, setProcessReasons] = useState<ProcessReason[]>(() => {
-    const saved = localStorage.getItem('oee-process-reasons');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultProcessReasons;
-  });
-
-  const [scheduledDowntimes, setScheduledDowntimes] = useState<ScheduledDowntime[]>(() => {
-    const saved = localStorage.getItem('oee-scheduled-downtimes');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return defaultScheduledDowntimes;
-  });
-
-  const [productionRecords, setProductionRecords] = useState<ProductionRecord[]>(() => {
-    const saved = localStorage.getItem('oee-production-records');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    const sampleData = generateSampleData();
-    localStorage.setItem('oee-production-records', JSON.stringify(sampleData));
-    return sampleData;
-  });
-
-  const [partProductionHistory, setPartProductionHistory] = useState<PartProductionHistory[]>(() => {
-    const saved = localStorage.getItem('oee-part-production-history');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return [];
-  });
-
-  const [downtimeEventHistory, setDowntimeEventHistory] = useState<DowntimeEventHistory[]>(() => {
-    const saved = localStorage.getItem('oee-downtime-event-history');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return [];
-  });
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [parts, setParts] = useState<Part[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [defectReasons, setDefectReasons] = useState<DefectReason[]>([]);
+  const [downtimeReasons, setDowntimeReasons] = useState<DowntimeReasonItem[]>([]);
+  const [processReasons, setProcessReasons] = useState<ProcessReason[]>([]);
+  const [scheduledDowntimes, setScheduledDowntimes] = useState<ScheduledDowntime[]>([]);
+  const [productionRecords, setProductionRecords] = useState<ProductionRecord[]>([]);
+  const [partProductionHistory, setPartProductionHistory] = useState<PartProductionHistory[]>([]);
+  const [downtimeEventHistory, setDowntimeEventHistory] = useState<DowntimeEventHistory[]>([]);
 
   const [operatorSetup, setOperatorSetup] = useState<OperatorSetupData | null>(null);
   const [showOperatorSetup, setShowOperatorSetup] = useState(false);
   const [setupMode, setSetupMode] = useState<'new' | 'edit' | 'partcast-change'>('new');
 
+  // Load all data from API on authentication
   useEffect(() => {
-    localStorage.setItem('oee-operators-v2', JSON.stringify(operators));
-  }, [operators]);
+    if (!isAuthenticated) return;
 
-  useEffect(() => {
-    localStorage.setItem('oee-parts-v2', JSON.stringify(parts));
-  }, [parts]);
+    const loadData = async () => {
+      try {
+        const [
+          ops, pts, mchs,
+          defects, downtimes, processes, schedules,
+          records, partHist, dtHist
+        ] = await Promise.all([
+          operatorApi.getAll(),
+          partApi.getAll(),
+          machineApi.getAll(),
+          defectReasonApi.getAll(),
+          downtimeReasonApi.getAll(),
+          processReasonApi.getAll(),
+          scheduledDowntimeApi.getAll(),
+          productionRecordApi.getAll(),
+          partProductionHistoryApi.getAll(),
+          downtimeEventHistoryApi.getAll(),
+        ]);
 
-  useEffect(() => {
-    localStorage.setItem('oee-machines-v2', JSON.stringify(machines));
-  }, [machines]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-production-records', JSON.stringify(productionRecords));
-  }, [productionRecords]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-defect-reasons', JSON.stringify(defectReasons));
-  }, [defectReasons]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-downtime-reasons', JSON.stringify(downtimeReasons));
-  }, [downtimeReasons]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-process-reasons', JSON.stringify(processReasons));
-  }, [processReasons]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-scheduled-downtimes', JSON.stringify(scheduledDowntimes));
-  }, [scheduledDowntimes]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-part-production-history', JSON.stringify(partProductionHistory));
-  }, [partProductionHistory]);
-
-  useEffect(() => {
-    localStorage.setItem('oee-downtime-event-history', JSON.stringify(downtimeEventHistory));
-  }, [downtimeEventHistory]);
-
-  const addProductionRecord = (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => {
-    const newRecord: ProductionRecord = {
-      ...record,
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
+        setOperators(ops);
+        setParts(pts);
+        setMachines(mchs);
+        setDefectReasons(defects);
+        setDowntimeReasons(downtimes);
+        setProcessReasons(processes);
+        setScheduledDowntimes(schedules);
+        setProductionRecords(records);
+        setPartProductionHistory(partHist);
+        setDowntimeEventHistory(dtHist);
+      } catch (err) {
+        console.error("Failed to load initial data from API", err);
+        toast.error("Failed to load data from server. Please check your connection.");
+      }
     };
-    setProductionRecords([newRecord, ...productionRecords]);
+
+    loadData();
+  }, [isAuthenticated]);
+
+  const addProductionRecord = async (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => {
+    try {
+      const newRecord = await productionRecordApi.create(record);
+      setProductionRecords([newRecord, ...productionRecords]);
+      return newRecord;
+    } catch (e) {
+      toast.error('Failed to save record to server');
+      throw e;
+    }
   };
 
-  const updateMachine = (id: string, updates: Partial<Machine>) => {
-    setMachines(machines.map(m => m.id === id ? { ...m, ...updates } : m));
+  const updateProductionRecord = async (id: string, updates: Partial<ProductionRecord>) => {
+    try {
+      const updated = await productionRecordApi.patch(id, updates);
+      setProductionRecords(productionRecords.map(r => r.id === id ? { ...r, ...updated } : r));
+      return updated;
+    } catch (e) {
+      toast.error('Failed to update record on server');
+      throw e;
+    }
   };
 
-  const addMachine = (machine: Omit<Machine, 'id'>) => {
-    setMachines([...machines, { ...machine, id: crypto.randomUUID() }]);
+  const updateMachine = async (id: string, updates: Partial<Machine>) => {
+    try {
+      const updated = await machineApi.update(id, updates);
+      setMachines(machines.map(m => m.id == id ? updated : m));
+    } catch (e) {
+      toast.error('Failed to update machine on server');
+    }
   };
 
-  const deleteMachine = (id: string) => {
-    setMachines(machines.filter(m => m.id !== id));
+  const addMachine = async (machine: Omit<Machine, 'id'>) => {
+    try {
+      const newMachine = await machineApi.create(machine);
+      setMachines([...machines, newMachine]);
+    } catch (e) {
+      toast.error('Failed to add machine to server');
+    }
   };
 
-  const addOperator = (operator: Omit<Operator, 'id'>) => {
-    setOperators([...operators, { ...operator, id: crypto.randomUUID() }]);
+  const deleteMachine = async (id: string) => {
+    try {
+      await machineApi.delete(id);
+      setMachines(machines.filter(m => m.id != id));
+    } catch (e) {
+      toast.error('Failed to delete machine from server');
+    }
   };
 
-  const updateOperator = (id: string, updates: Partial<Operator>) => {
-    setOperators(operators.map(op => op.id === id ? { ...op, ...updates } : op));
+  const addOperator = async (operator: Omit<Operator, 'id'>) => {
+    try {
+      const newOp = await operatorApi.create(operator);
+      setOperators([...operators, newOp]);
+    } catch (e) {
+      toast.error('Failed to add operator');
+    }
   };
 
-  const deleteOperator = (id: string) => {
-    setOperators(operators.filter(op => op.id !== id));
+  const updateOperator = async (id: string, updates: Partial<Operator>) => {
+    try {
+      const updated = await operatorApi.update(id, updates);
+      setOperators(operators.map(op => op.id == id ? updated : op));
+    } catch (e) {
+      toast.error('Failed to update operator');
+    }
   };
 
-  const addPart = (part: Omit<Part, 'id'>) => {
-    setParts([...parts, { ...part, id: crypto.randomUUID() }]);
+  const deleteOperator = async (id: string) => {
+    try {
+      await operatorApi.delete(id);
+      setOperators(operators.filter(op => op.id != id));
+    } catch (e) {
+      toast.error('Failed to delete operator');
+    }
   };
 
-  const updatePart = (id: string, updates: Partial<Part>) => {
-    setParts(parts.map(p => p.id === id ? { ...p, ...updates } : p));
+  const addPart = async (part: Omit<Part, 'id'>) => {
+    try {
+      const newPart = await partApi.create(part);
+      setParts([...parts, newPart]);
+    } catch (e) {
+      toast.error('Failed to add part');
+    }
   };
 
-  const deletePart = (id: string) => {
-    setParts(parts.filter(p => p.id !== id));
+  const updatePart = async (id: string, updates: Partial<Part>) => {
+    try {
+      const updated = await partApi.update(id, updates);
+      setParts(parts.map(p => p.id == id ? updated : p));
+    } catch (e) {
+      toast.error('Failed to update part');
+    }
   };
 
-  const deleteProductionRecord = (id: string) => {
-    setProductionRecords(productionRecords.filter(r => r.id !== id));
+  const deletePart = async (id: string) => {
+    try {
+      await partApi.delete(id);
+      setParts(parts.filter(p => p.id != id));
+    } catch (e) {
+      toast.error('Failed to delete part');
+    }
+  };
+
+  const deleteProductionRecord = async (id: string) => {
+    try {
+      await productionRecordApi.delete(id);
+      setProductionRecords(productionRecords.filter(r => r.id != id));
+    } catch (e) {
+      toast.error('Failed to delete record');
+    }
   };
 
   // Defect Reason Management
-  const addDefectReason = (reason: Omit<DefectReason, 'id'>) => {
-    setDefectReasons([...defectReasons, { ...reason, id: crypto.randomUUID() }]);
+  const addDefectReason = async (reason: Omit<DefectReason, 'id'>) => {
+    try {
+      const created = await defectReasonApi.create(reason);
+      setDefectReasons([...defectReasons, created]);
+    } catch (e) {
+      toast.error('Failed to add defect reason');
+    }
   };
 
-  const updateDefectReason = (id: string, updates: Partial<DefectReason>) => {
-    setDefectReasons(defectReasons.map(r => r.id === id ? { ...r, ...updates } : r));
+  const updateDefectReason = async (id: string, updates: Partial<DefectReason>) => {
+    try {
+      const updated = await defectReasonApi.update(id, updates);
+      setDefectReasons(defectReasons.map(r => r.id == id ? updated : r));
+    } catch (e) {
+      toast.error('Failed to update defect reason');
+    }
   };
 
-  const deleteDefectReason = (id: string) => {
-    setDefectReasons(defectReasons.filter(r => r.id !== id));
+  const deleteDefectReason = async (id: string) => {
+    try {
+      await defectReasonApi.delete(id);
+      setDefectReasons(defectReasons.filter(r => r.id != id));
+    } catch (e) {
+      toast.error('Failed to delete defect reason');
+    }
   };
 
   // Downtime Reason Management
-  const addDowntimeReason = (reason: Omit<DowntimeReasonItem, 'id'>) => {
-    setDowntimeReasons([...downtimeReasons, { ...reason, id: crypto.randomUUID() }]);
+  const addDowntimeReason = async (reason: Omit<DowntimeReasonItem, 'id'>) => {
+    try {
+      const created = await downtimeReasonApi.create(reason);
+      setDowntimeReasons([...downtimeReasons, created]);
+    } catch (e) {
+      toast.error('Failed to add downtime reason');
+    }
   };
 
-  const updateDowntimeReason = (id: string, updates: Partial<DowntimeReasonItem>) => {
-    setDowntimeReasons(downtimeReasons.map(r => r.id === id ? { ...r, ...updates } : r));
+  const updateDowntimeReason = async (id: string, updates: Partial<DowntimeReasonItem>) => {
+    try {
+      const updated = await downtimeReasonApi.update(id, updates);
+      setDowntimeReasons(downtimeReasons.map(r => r.id == id ? updated : r));
+    } catch (e) {
+      toast.error('Failed to update downtime reason');
+    }
   };
 
-  const deleteDowntimeReason = (id: string) => {
-    setDowntimeReasons(downtimeReasons.filter(r => r.id !== id));
+  const deleteDowntimeReason = async (id: string) => {
+    try {
+      await downtimeReasonApi.delete(id);
+      setDowntimeReasons(downtimeReasons.filter(r => r.id != id));
+    } catch (e) {
+      toast.error('Failed to delete downtime reason');
+    }
   };
 
   // Process Reason Management
-  const addProcessReason = (reason: Omit<ProcessReason, 'id'>) => {
-    setProcessReasons([...processReasons, { ...reason, id: crypto.randomUUID() }]);
+  const addProcessReason = async (reason: Omit<ProcessReason, 'id'>) => {
+    try {
+      const created = await processReasonApi.create(reason);
+      setProcessReasons([...processReasons, created]);
+    } catch (e) {
+      toast.error('Failed to add process reason');
+    }
   };
 
-  const updateProcessReason = (id: string, updates: Partial<ProcessReason>) => {
-    setProcessReasons(processReasons.map(r => r.id === id ? { ...r, ...updates } : r));
+  const updateProcessReason = async (id: string, updates: Partial<ProcessReason>) => {
+    try {
+      const updated = await processReasonApi.update(id, updates);
+      setProcessReasons(processReasons.map(r => r.id == id ? updated : r));
+    } catch (e) {
+      toast.error('Failed to update process reason');
+    }
   };
 
-  const deleteProcessReason = (id: string) => {
-    setProcessReasons(processReasons.filter(r => r.id !== id));
+  const deleteProcessReason = async (id: string) => {
+    try {
+      await processReasonApi.delete(id);
+      setProcessReasons(processReasons.filter(r => r.id != id));
+    } catch (e) {
+      toast.error('Failed to delete process reason');
+    }
   };
 
   // Scheduled Downtime Management
-  const addScheduledDowntime = (downtime: Omit<ScheduledDowntime, 'id'>) => {
-    setScheduledDowntimes([...scheduledDowntimes, { ...downtime, id: crypto.randomUUID() }]);
+  const addScheduledDowntime = async (downtime: Omit<ScheduledDowntime, 'id'>) => {
+    try {
+      const created = await scheduledDowntimeApi.create(downtime);
+      setScheduledDowntimes([...scheduledDowntimes, created]);
+    } catch (e) {
+      toast.error('Failed to add scheduled downtime');
+    }
   };
 
-  const updateScheduledDowntime = (id: string, updates: Partial<ScheduledDowntime>) => {
-    setScheduledDowntimes(scheduledDowntimes.map(d => d.id === id ? { ...d, ...updates } : d));
+  const updateScheduledDowntime = async (id: string, updates: Partial<ScheduledDowntime>) => {
+    try {
+      const updated = await scheduledDowntimeApi.update(id, updates);
+      setScheduledDowntimes(scheduledDowntimes.map(d => d.id == id ? updated : d));
+    } catch (e) {
+      toast.error('Failed to update scheduled downtime');
+    }
   };
 
-  const deleteScheduledDowntime = (id: string) => {
-    setScheduledDowntimes(scheduledDowntimes.filter(d => d.id !== id));
+  const deleteScheduledDowntime = async (id: string) => {
+    try {
+      await scheduledDowntimeApi.delete(id);
+      setScheduledDowntimes(scheduledDowntimes.filter(d => d.id != id));
+    } catch (e) {
+      toast.error('Failed to delete scheduled downtime');
+    }
   };
 
   // Part Production History Management
-  const addPartProductionHistory = (record: Omit<PartProductionHistory, 'id' | 'timestamp'>) => {
-    const newRecord: PartProductionHistory = {
-      ...record,
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-    };
-    setPartProductionHistory([newRecord, ...partProductionHistory]);
+  const addPartProductionHistory = async (record: Omit<PartProductionHistory, 'id' | 'timestamp'>) => {
+    try {
+      const created = await partProductionHistoryApi.create(record);
+      setPartProductionHistory([created, ...partProductionHistory]);
+    } catch (e) {
+      toast.error('Failed to add history');
+    }
   };
 
-  const deletePartProductionHistory = (id: string) => {
-    setPartProductionHistory(partProductionHistory.filter(r => r.id !== id));
+  const deletePartProductionHistory = async (id: string) => {
+    try {
+      await partProductionHistoryApi.delete(id);
+      setPartProductionHistory(partProductionHistory.filter(r => r.id != id));
+    } catch (e) {
+      toast.error('Failed to delete history');
+    }
   };
 
   // Downtime Event History Management
-  const addDowntimeEventHistory = (event: Omit<DowntimeEventHistory, 'id' | 'timestamp'>) => {
-    const newEvent: DowntimeEventHistory = {
-      ...event,
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-    };
-    setDowntimeEventHistory([newEvent, ...downtimeEventHistory]);
+  const addDowntimeEventHistory = async (event: Omit<DowntimeEventHistory, 'id' | 'timestamp'>) => {
+    try {
+      const created = await downtimeEventHistoryApi.create(event);
+      setDowntimeEventHistory([created, ...downtimeEventHistory]);
+    } catch (e) {
+      toast.error('Failed to add event');
+    }
   };
 
-  const deleteDowntimeEventHistory = (id: string) => {
-    setDowntimeEventHistory(downtimeEventHistory.filter(e => e.id !== id));
+  const deleteDowntimeEventHistory = async (id: string) => {
+    try {
+      await downtimeEventHistoryApi.delete(id);
+      setDowntimeEventHistory(downtimeEventHistory.filter(e => e.id != id));
+    } catch (e) {
+      toast.error('Failed to delete event');
+    }
   };
 
   const handleLogin = (employeeId: string, role: 'operator' | 'manager') => {
@@ -580,18 +649,28 @@ export default function App() {
     );
   }
     
-const updatePartProductionHistory = (id: string, updates: Partial<PartProductionHistory>) => {
-  setPartProductionHistory(prev =>
-    prev.map(record => (record.id === id ? { ...record, ...updates } : record))
-  );
-  toast.success('Production record updated in place');
+const updatePartProductionHistory = async (id: string, updates: Partial<PartProductionHistory>) => {
+  try {
+    const updated = await partProductionHistoryApi.patch(id, updates);
+    setPartProductionHistory(prev =>
+      prev.map(record => (record.id === id ? { ...record, ...updated } : record))
+    );
+    toast.success('Part history updated');
+  } catch (e) {
+    toast.error('Failed to update part history on server');
+  }
 };
 
-const updateDowntimeEventHistory = (id: string, updates: Partial<DowntimeEventHistory>) => {
-  setDowntimeEventHistory(prev =>
-    prev.map(event => (event.id === id ? { ...event, ...updates } : event))
-  );
-  toast.success('Downtime event updated in place');
+const updateDowntimeEventHistory = async (id: string, updates: Partial<DowntimeEventHistory>) => {
+  try {
+    const updated = await downtimeEventHistoryApi.patch(id, updates);
+    setDowntimeEventHistory(prev =>
+      prev.map(event => (event.id === id ? { ...event, ...updated } : event))
+    );
+    toast.success('Downtime event updated');
+  } catch (e) {
+    toast.error('Failed to update downtime event on server');
+  }
 };
 
     return (
@@ -658,8 +737,9 @@ const updateDowntimeEventHistory = (id: string, updates: Partial<DowntimeEventHi
           <main className="max-w-7xl mx-auto px-6 py-8">
             <Tabs defaultValue={currentUser?.role === 'operator' ? 'entry' : 'dashboard'} className="space-y-6">
                 {currentUser?.role === 'manager' ? (
-                  <TabsList className="grid w-full grid-cols-7 h-14 shadow-sm border border-slate-200">
+                  <TabsList className="grid w-full grid-cols-8 h-14 shadow-sm border border-slate-200">
                     <TabsTrigger value="dashboard" className="text-base h-full">Dashboard</TabsTrigger>
+                    <TabsTrigger value="records" className="text-base h-full">Shift Records</TabsTrigger>
                     <TabsTrigger value="history" className="text-base h-full">History</TabsTrigger>
                     <TabsTrigger value="operators" className="text-base h-full">Operators</TabsTrigger>
                     <TabsTrigger value="machines" className="text-base h-full">Machines</TabsTrigger>
@@ -684,6 +764,25 @@ const updateDowntimeEventHistory = (id: string, updates: Partial<DowntimeEventHi
                         productionRecords={productionRecords}
                       />
                     </TabsContent>
+
+                    <TabsContent value="records">
+                      <ProductionRecordManagement
+                        productionRecords={productionRecords}
+                        partProductionHistory={partProductionHistory}
+                        downtimeEventHistory={downtimeEventHistory}
+                        machines={machines}
+                        parts={parts}
+                        defectReasons={defectReasons}
+                        onUpdateRecord={updateProductionRecord}
+                        onAddPartHistory={addPartProductionHistory}
+                        onUpdatePartHistory={updatePartProductionHistory}
+                        onDeletePartHistory={deletePartProductionHistory}
+                        onAddDowntimeEvent={addDowntimeEventHistory}
+                        onUpdateDowntimeEvent={updateDowntimeEventHistory}
+                        onDeleteDowntimeEvent={deleteDowntimeEventHistory}
+                      />
+                    </TabsContent>
+
                     <TabsContent value="history">
                       <HistoricalData
                         productionRecords={productionRecords}
@@ -770,6 +869,7 @@ const updateDowntimeEventHistory = (id: string, updates: Partial<DowntimeEventHi
                       defectReasons={defectReasons}
                       onUpdatePartHistory={updatePartProductionHistory}
                       onAddRecord={addProductionRecord}
+                      onUpdateRecord={updateProductionRecord}
                       onAddPartHistory={addPartProductionHistory}
                       onAddDowntimeEvent={addDowntimeEventHistory}
                       currentUser={currentUser}

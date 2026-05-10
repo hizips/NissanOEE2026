@@ -120,7 +120,7 @@ export function HistoricalData({
       const matchesDateTo = !filterDateTo || record.date <= filterDateTo;
 
       return matchesSearch && matchesMachine && matchesOperator && matchesPart &&
-             matchesShift && matchesResult && matchesDateFrom && matchesDateTo;
+        matchesShift && matchesResult && matchesDateFrom && matchesDateTo;
     });
   }, [partProductionHistory, searchTerm, filterMachine, filterOperator, filterPart, filterShift, filterResult, filterDateFrom, filterDateTo]);
 
@@ -139,7 +139,7 @@ export function HistoricalData({
       const matchesDateTo = !filterDateTo || event.date <= filterDateTo;
 
       return matchesSearch && matchesMachine && matchesOperator && matchesShift &&
-             matchesDateFrom && matchesDateTo;
+        matchesDateFrom && matchesDateTo;
     });
   }, [downtimeEventHistory, searchTerm, filterMachine, filterOperator, filterShift, filterDateFrom, filterDateTo]);
 
@@ -326,52 +326,52 @@ export function HistoricalData({
     window.URL.revokeObjectURL(url);
     toast.success('Data exported successfully');
   };
-    
-    // Inside HistoricalData component...
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<{
-      id: string;
-      type: 'part' | 'downtime';
-      data: any;
-    } | null>(null);
 
-    const handleEdit = (record: any, type: 'part' | 'downtime') => {
-      setEditingItem({ id: record.id, type, data: { ...record } });
-      setEditDialogOpen(true);
-    };
-    
-//    const handleEditProduct = (product: ProductionRecord) => {
-//      setEditingProductId(product.id);
-//      
-//      // If it's already NG, load the existing defect
-//      if (product.status === 'ng' && product.defectCategory && product.defectSubcategory) {
-//        setCurrentDefect({
-//          category: product.defectCategory,
-//          subcategory: product.defectSubcategory,
-//          comment: product.comment,
-//        });
-//      } else {
-//        // If it was "PASS", reset the selector so they can pick a new reason
-//        setCurrentDefect(null);
-//      }
-//      
-//      setShowDefectSelector(true);
-//    };
+  // Inside HistoricalData component...
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<{
+    id: string;
+    type: 'part' | 'downtime';
+    data: any;
+  } | null>(null);
 
-    const saveEdit = () => {
-      if (editingItem) {
-        if (editingItem.type === 'part') {
-          // Pass the ID and the modified data object directly
-          onUpdatePartHistory(editingItem.id, editingItem.data);
-        } else {
-          onUpdateDowntimeEvent(editingItem.id, editingItem.data);
-        }
-        
-        // Close dialog and reset state
-        setEditDialogOpen(false);
-        setEditingItem(null);
+  const handleEdit = (record: any, type: 'part' | 'downtime') => {
+    setEditingItem({ id: record.id, type, data: { ...record } });
+    setEditDialogOpen(true);
+  };
+
+  //    const handleEditProduct = (product: ProductionRecord) => {
+  //      setEditingProductId(product.id);
+  //      
+  //      // If it's already NG, load the existing defect
+  //      if (product.status === 'ng' && product.defectCategory && product.defectSubcategory) {
+  //        setCurrentDefect({
+  //          category: product.defectCategory,
+  //          subcategory: product.defectSubcategory,
+  //          comment: product.comment,
+  //        });
+  //      } else {
+  //        // If it was "PASS", reset the selector so they can pick a new reason
+  //        setCurrentDefect(null);
+  //      }
+  //      
+  //      setShowDefectSelector(true);
+  //    };
+
+  const saveEdit = () => {
+    if (editingItem) {
+      if (editingItem.type === 'part') {
+        // Pass the ID and the modified data object directly
+        onUpdatePartHistory(editingItem.id, editingItem.data);
+      } else {
+        onUpdateDowntimeEvent(editingItem.id, editingItem.data);
       }
-    };
+
+      // Close dialog and reset state
+      setEditDialogOpen(false);
+      setEditingItem(null);
+    }
+  };
 
   return (
     <div className="bg-white space-y-6">
@@ -464,19 +464,19 @@ export function HistoricalData({
               </SelectContent>
             </Select>
             <Input
-                type="date"
-                placeholder="Date From"
-                value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="bg-slate-200 border-slate-200" // Added grey bg
+              type="date"
+              placeholder="Date From"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="bg-slate-200 border-slate-200" // Added grey bg
             />
             <Input
-                type="date"
-                placeholder="Date To"
-                value={filterDateTo}
-                onChange={(e) => setFilterDateTo(e.target.value)}
-                className="bg-slate-200 border-slate-200" // Added grey bg
-          />
+              type="date"
+              placeholder="Date To"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="bg-slate-200 border-slate-200" // Added grey bg
+            />
           </div>
 
           {/* Machine Groups */}
@@ -625,32 +625,32 @@ export function HistoricalData({
                                       <TableCell className="text-sm text-slate-500">
                                         {format(new Date(record.timestamp), 'HH:mm:ss')}
                                       </TableCell>
-                                        {userRole === 'manager' && (
-                                          <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleEdit(record, 'part')} // For parts tab
-                                                // onClick={() => handleEdit(event, 'downtime')} // For downtime tab
-                                                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                              >
-                                                <Edit3 className="h-4 w-4" />
-                                                <span className="sr-only">Edit</span>
-                                              </Button>
-                                              
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDelete(record.id, 'part')}
-                                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                              >
-                                                <Trash2 className="h-4 w-4" />
-                                                <span className="sr-only">Delete</span>
-                                              </Button>
-                                            </div>
-                                          </TableCell>
-                                        )}
+                                      {userRole === 'manager' && (
+                                        <TableCell className="text-right">
+                                          <div className="flex justify-end gap-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleEdit(record, 'part')} // For parts tab
+                                              // onClick={() => handleEdit(event, 'downtime')} // For downtime tab
+                                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                              <Edit3 className="h-4 w-4" />
+                                              <span className="sr-only">Edit</span>
+                                            </Button>
+
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleDelete(record.id, 'part')}
+                                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                              <span className="sr-only">Delete</span>
+                                            </Button>
+                                          </div>
+                                        </TableCell>
+                                      )}
                                     </TableRow>
                                   ))}
                                 </TableBody>
@@ -790,7 +790,7 @@ export function HistoricalData({
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {itemToDelete?.type === 'part' ? 'Part History' : 'Downtime Event'}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -805,199 +805,199 @@ export function HistoricalData({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-          
-          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Modify {editingItem?.type === 'part' ? 'Production Record' : 'Downtime Event'}</DialogTitle>
-                <DialogDescription>
-                  Update all historical data fields. Note: Die selection is restricted to dies supported by the selected part.
-                </DialogDescription>
-              </DialogHeader>
-              
-              {editingItem && (
-                <div className="grid grid-cols-2 gap-4 py-4">
-                  {/* --- Common Fields --- */}
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Input
-                      type="date"
-                      value={editingItem.data.date}
-                      onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, date: e.target.value}})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Shift</Label>
-                    <Select
-                      value={editingItem.data.shift}
-                      onValueChange={(v) => setEditingItem({...editingItem, data: {...editingItem.data, shift: v}})}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="morning">Morning</SelectItem>
-                        <SelectItem value="afternoon">Afternoon</SelectItem>
-                        <SelectItem value="night">Night</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modify {editingItem?.type === 'part' ? 'Production Record' : 'Downtime Event'}</DialogTitle>
+            <DialogDescription>
+              Update all historical data fields. Note: Die selection is restricted to dies supported by the selected part.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingItem && (
+            <div className="grid grid-cols-2 gap-4 py-4">
+              {/* --- Common Fields --- */}
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={editingItem.data.date}
+                  onChange={(e) => setEditingItem({ ...editingItem, data: { ...editingItem.data, date: e.target.value } })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Shift</Label>
+                <Select
+                  value={editingItem.data.shift}
+                  onValueChange={(v) => setEditingItem({ ...editingItem, data: { ...editingItem.data, shift: v } })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                    <SelectItem value="night">Night</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Machine</Label>
+                <Select
+                  value={editingItem.data.machineId}
+                  onValueChange={(v) => {
+                    const m = machines.find(mac => mac.id === v);
+                    setEditingItem({
+                      ...editingItem,
+                      data: { ...editingItem.data, machineId: v, machineName: m?.name || '' }
+                    });
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Operator</Label>
+                <Select
+                  value={editingItem.data.operatorName}
+                  onValueChange={(v) => setEditingItem({ ...editingItem, data: { ...editingItem.data, operatorName: v } })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {operators.map(op => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* --- Part History Specific Fields --- */}
+              {editingItem.type === 'part' && (
+                <>
+                  {/* ... Part Name and Die selectors stay the same ... */}
 
                   <div className="space-y-2">
-                    <Label>Machine</Label>
+                    <Label>Result</Label>
                     <Select
-                      value={editingItem.data.machineId}
+                      value={editingItem.data.result}
                       onValueChange={(v) => {
-                        const m = machines.find(mac => mac.id === v);
                         setEditingItem({
                           ...editingItem,
-                          data: { ...editingItem.data, machineId: v, machineName: m?.name || '' }
-                        });
+                          data: {
+                            ...editingItem.data,
+                            result: v,
+                            // Clear NG reasons if changed to PASS
+                            defectCategory: v === 'PASS' ? undefined : editingItem.data.defectCategory,
+                            defectSubcategory: v === 'PASS' ? undefined : editingItem.data.defectSubcategory
+                          }
+                        })
                       }}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Operator</Label>
-                    <Select
-                      value={editingItem.data.operatorName}
-                      onValueChange={(v) => setEditingItem({...editingItem, data: {...editingItem.data, operatorName: v}})}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {operators.map(op => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                        <SelectItem value="PASS">PASS</SelectItem>
+                        <SelectItem value="NOT GOOD">NOT GOOD</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                   {/* --- Part History Specific Fields --- */}
-                   {editingItem.type === 'part' && (
-                     <>
-                       {/* ... Part Name and Die selectors stay the same ... */}
-
-                       <div className="space-y-2">
-                         <Label>Result</Label>
-                         <Select
-                           value={editingItem.data.result}
-                           onValueChange={(v) => {
-                             setEditingItem({
-                               ...editingItem,
-                               data: {
-                                 ...editingItem.data,
-                                 result: v,
-                                 // Clear NG reasons if changed to PASS
-                                 defectCategory: v === 'PASS' ? undefined : editingItem.data.defectCategory,
-                                 defectSubcategory: v === 'PASS' ? undefined : editingItem.data.defectSubcategory
-                               }
-                             })
-                           }}
-                         >
-                           <SelectTrigger><SelectValue /></SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="PASS">PASS</SelectItem>
-                             <SelectItem value="NOT GOOD">NOT GOOD</SelectItem>
-                           </SelectContent>
-                         </Select>
-                       </div>
-
-                       {/* NEW: Conditional Defect Reason Fields */}
-                       {editingItem.data.result === 'NOT GOOD' && (
-                         <>
-                           <div className="space-y-2">
-                             <Label>Defect Category</Label>
-                             <Select
-                               value={editingItem.data.defectCategory}
-                               onValueChange={(v) => setEditingItem({
-                                 ...editingItem,
-                                 data: { ...editingItem.data, defectCategory: v, defectSubcategory: '' }
-                               })}
-                             >
-                               <SelectTrigger><SelectValue placeholder="Select category..." /></SelectTrigger>
-                               <SelectContent>
-                                 {[...new Set(defectReasons.map(r => r.category))].map(cat => (
-                                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
-                           </div>
-
-                           <div className="space-y-2">
-                             <Label>Defect Subcategory</Label>
-                             <Select
-                               value={editingItem.data.defectSubcategory}
-                               onValueChange={(v) => setEditingItem({
-                                 ...editingItem,
-                                 data: { ...editingItem.data, defectSubcategory: v }
-                               })}
-                             >
-                               <SelectTrigger><SelectValue placeholder="Select subcategory..." /></SelectTrigger>
-                               <SelectContent>
-                                 {defectReasons
-                                   .filter(r => r.category === editingItem.data.defectCategory)
-                                   .map(reason => (
-                                     <SelectItem key={reason.id} value={reason.subcategory}>
-                                       {reason.subcategory}
-                                     </SelectItem>
-                                   ))}
-                               </SelectContent>
-                             </Select>
-                           </div>
-                         </>
-                       )}
-                     </>
-                   )}
-
-                  {/* --- Downtime Specific Fields --- */}
-                  {editingItem.type === 'downtime' && (
+                  {/* NEW: Conditional Defect Reason Fields */}
+                  {editingItem.data.result === 'NOT GOOD' && (
                     <>
                       <div className="space-y-2">
-                        <Label>Start Time</Label>
-                        <Input
-                          type="time"
-                          value={editingItem.data.startTime}
-                          onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, startTime: e.target.value}})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>End Time</Label>
-                        <Input
-                          type="time"
-                          value={editingItem.data.endTime}
-                          onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, endTime: e.target.value}})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Duration (min)</Label>
-                        <Input
-                          type="number"
-                          value={editingItem.data.duration}
-                          onChange={(e) => setEditingItem({
+                        <Label>Defect Category</Label>
+                        <Select
+                          value={editingItem.data.defectCategory}
+                          onValueChange={(v) => setEditingItem({
                             ...editingItem,
-                            data: { ...editingItem.data, duration: parseInt(e.target.value) || 0 }
+                            data: { ...editingItem.data, defectCategory: v, defectSubcategory: '' }
                           })}
-                        />
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select category..." /></SelectTrigger>
+                          <SelectContent>
+                            {[...new Set(defectReasons.map(r => r.category))].map(cat => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Defect Subcategory</Label>
+                        <Select
+                          value={editingItem.data.defectSubcategory}
+                          onValueChange={(v) => setEditingItem({
+                            ...editingItem,
+                            data: { ...editingItem.data, defectSubcategory: v }
+                          })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select subcategory..." /></SelectTrigger>
+                          <SelectContent>
+                            {defectReasons
+                              .filter(r => r.category === editingItem.data.defectCategory)
+                              .map(reason => (
+                                <SelectItem key={reason.id} value={reason.subcategory}>
+                                  {reason.subcategory}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </>
                   )}
-
-                   <div className="col-span-2 space-y-2">
-                     <Label>Comment</Label>
-                     <Input
-                       value={editingItem.data.comment || ''}
-                       onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, comment: e.target.value}})}
-                     />
-                   </div>
-                </div>
+                </>
               )}
 
-              <DialogFooter className="gap-2">
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-                <Button onClick={saveEdit} className="bg-blue-600 hover:bg-blue-700">Apply All Changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              {/* --- Downtime Specific Fields --- */}
+              {editingItem.type === 'downtime' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Start Time</Label>
+                    <Input
+                      type="time"
+                      value={editingItem.data.startTime}
+                      onChange={(e) => setEditingItem({ ...editingItem, data: { ...editingItem.data, startTime: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Time</Label>
+                    <Input
+                      type="time"
+                      value={editingItem.data.endTime}
+                      onChange={(e) => setEditingItem({ ...editingItem, data: { ...editingItem.data, endTime: e.target.value } })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Duration (min)</Label>
+                    <Input
+                      type="number"
+                      value={editingItem.data.duration}
+                      onChange={(e) => setEditingItem({
+                        ...editingItem,
+                        data: { ...editingItem.data, duration: parseInt(e.target.value) || 0 }
+                      })}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="col-span-2 space-y-2">
+                <Label>Comment</Label>
+                <Input
+                  value={editingItem.data.comment || ''}
+                  onChange={(e) => setEditingItem({ ...editingItem, data: { ...editingItem.data, comment: e.target.value } })}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={saveEdit} className="bg-blue-600 hover:bg-blue-700">Apply All Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

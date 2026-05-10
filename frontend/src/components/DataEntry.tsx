@@ -39,7 +39,8 @@ const DIES = ['Die #1', 'Die #2', 'Die #3', 'Die #4', 'Die #5', 'Die #6', 'Die #
 
 interface DataEntryProps {
   machines: Machine[];
-  onAddRecord: (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => void;
+  onAddRecord: (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => Promise<ProductionRecord>;
+  onUpdateRecord?: (id: string, updates: Partial<ProductionRecord>) => Promise<ProductionRecord>;
   onAddPartHistory: (record: Omit<PartProductionHistory, 'id' | 'timestamp'>) => void;
   onAddDowntimeEvent: (event: Omit<DowntimeEventHistory, 'id' | 'timestamp'>) => void;
   onUpdatePartHistory: (id: string, updates: Partial<PartProductionHistory>) => void;
@@ -83,6 +84,7 @@ interface DowntimeEvent {
 export function DataEntry({
   machines,
   onAddRecord,
+  onUpdateRecord,
   onAddPartHistory,
   onAddDowntimeEvent,
   onUpdatePartHistory, // Keep this
@@ -126,6 +128,66 @@ export function DataEntry({
 
   // Shift comment state
   const [shiftComment, setShiftComment] = useState('');
+  const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
+
+  const syncProductionRecord = async (
+    currentProducts: ProductRecord[] = products,
+    currentDowntimes: DowntimeEvent[] = downtimeEvents,
+    currentComment: string = shiftComment
+  ) => {
+    if (!operatorSetup) return;
+
+    const goodCount = currentProducts.filter(p => p.status === 'good').length;
+    const defectCount = currentProducts.filter(p => p.status === 'ng').length;
+    const netProduction = currentProducts.length;
+    const totalDowntime = currentDowntimes.reduce((total, event) => total + event.duration, 0);
+
+    // Auto-detect shift
+    const hour = new Date().getHours();
+    let detectedShift: 'morning' | 'afternoon' | 'night' = 'morning';
+    if (hour >= 6 && hour < 14) detectedShift = 'morning';
+    else if (hour >= 14 && hour < 22) detectedShift = 'afternoon';
+    else detectedShift = 'night';
+
+    const payload: Omit<ProductionRecord, 'id' | 'timestamp'> = {
+      machineId: operatorSetup.machineId,
+      machineName: operatorSetup.machineName,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      shift: detectedShift,
+      plannedProductionTime: 480,
+      counterStart: 0,
+      counterEnd: netProduction,
+      grossCount: netProduction,
+      excludedShots: 0,
+      netProduction: netProduction,
+      totalCount: netProduction,
+      targetOutput: 0, 
+      performance: 0,
+      downtime: totalDowntime,
+      goodCount: goodCount,
+      defectCount: defectCount,
+      operatorName: operatorSetup.operatorName,
+      notes: currentComment,
+    };
+
+    if (activeRecordId && onUpdateRecord) {
+      await onUpdateRecord(activeRecordId, payload);
+    } else {
+      const created = await onAddRecord(payload);
+      if (created && created.id) {
+        setActiveRecordId(created.id);
+      }
+    }
+  };
+
+  // Auto-save interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      syncProductionRecord(products, downtimeEvents, shiftComment);
+    }, 60000); // every 1 minute
+    return () => clearInterval(interval);
+  }, [products, downtimeEvents, shiftComment, operatorSetup, activeRecordId]);
+
 
   // Current time display for downtime recorder
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -233,7 +295,9 @@ export function DataEntry({
       shift: getCurrentShift(),
     };
 
-    setProducts([newProduct, ...products]);
+    const newProducts = [newProduct, ...products];
+    setProducts(newProducts);
+    syncProductionRecord(newProducts);
 
     // Save to part production history
     onAddPartHistory({
@@ -271,17 +335,19 @@ export function DataEntry({
 
     if (editingProductId) {
       // Edit existing product
-      setProducts(products.map(p =>
+      const newProducts: ProductRecord[] = products.map(p =>
         p.id === editingProductId
           ? {
               ...p,
-              status: 'ng',
+              status: 'ng' as const,
               defectCategory: currentDefect.category,
               defectSubcategory: currentDefect.subcategory,
               comment: currentDefect.comment,
             }
           : p
-      ));
+      );
+      setProducts(newProducts);
+      syncProductionRecord(newProducts);
       toast.success('Product updated');
       setEditingProductId(null);
     } else {
@@ -300,7 +366,9 @@ export function DataEntry({
         shift: getCurrentShift(),
       };
 
-      setProducts([newProduct, ...products]);
+      const newProducts = [newProduct, ...products];
+      setProducts(newProducts);
+      syncProductionRecord(newProducts);
 
       // Save to part production history
       onAddPartHistory({
@@ -341,7 +409,9 @@ export function DataEntry({
   };
 
   const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+    const newProducts = products.filter(p => p.id !== id);
+    setProducts(newProducts);
+    syncProductionRecord(newProducts);
     toast.success('Product deleted');
   };
 
@@ -417,7 +487,7 @@ export function DataEntry({
 
     if (editingDowntimeId) {
       // Update existing downtime event
-      setDowntimeEvents(downtimeEvents.map(event =>
+      const newDowntimes = downtimeEvents.map(event =>
         event.id === editingDowntimeId
           ? {
               ...event,
@@ -428,7 +498,9 @@ export function DataEntry({
               comment: currentDowntime.comment,
             }
           : event
-      ));
+      );
+      setDowntimeEvents(newDowntimes);
+      syncProductionRecord(products, newDowntimes);
       toast.success('Downtime event updated');
       setEditingDowntimeId(null);
     } else {
@@ -448,7 +520,9 @@ export function DataEntry({
         shift: getCurrentShift(),
       };
 
-      setDowntimeEvents([newEvent, ...downtimeEvents]);
+      const newDowntimes = [newEvent, ...downtimeEvents];
+      setDowntimeEvents(newDowntimes);
+      syncProductionRecord(products, newDowntimes);
 
       // Save to downtime event history
       onAddDowntimeEvent({
@@ -515,7 +589,9 @@ export function DataEntry({
   };
 
   const handleDeleteDowntime = (id: string) => {
-    setDowntimeEvents(downtimeEvents.filter(e => e.id !== id));
+    const newDowntimes = downtimeEvents.filter(e => e.id !== id);
+    setDowntimeEvents(newDowntimes);
+    syncProductionRecord(products, newDowntimes);
     toast.success('Downtime event deleted');
   };
 
@@ -543,6 +619,7 @@ export function DataEntry({
   };
 
   const handleSaveShiftComment = () => {
+    syncProductionRecord(products, downtimeEvents, shiftComment);
     toast.success('Shift comment saved');
 
     // Auto-collapse summaries first
@@ -589,6 +666,11 @@ export function DataEntry({
     });
   };
 
+  const handleCheckOffWrapper = async () => {
+    await syncProductionRecord();
+    if (onCheckOff) onCheckOff();
+  };
+
     // Find this block around line 476
     if (!operatorSetup) {
       return (
@@ -620,7 +702,7 @@ export function DataEntry({
               
               {/* Optional: Add logout if they want to switch operators entirely */}
               <Button
-                onClick={onCheckOff}
+                onClick={handleCheckOffWrapper}
                 variant="outline"
                 className="h-16 px-8 border-2 border-slate-300"
               >
@@ -696,7 +778,7 @@ export function DataEntry({
             )}
             {onCheckOff && (
               <Button
-                onClick={onCheckOff}
+                onClick={handleCheckOffWrapper}
                 size="lg"
                 className="h-12 px-8 bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
               >

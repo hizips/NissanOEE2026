@@ -414,7 +414,7 @@ export function PartManagement({ parts, onAddPart, onUpdatePart, onDeletePart }:
       </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white text-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Part</AlertDialogTitle>
             <AlertDialogDescription>

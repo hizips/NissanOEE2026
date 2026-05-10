@@ -1,12 +1,18 @@
 from django.contrib import admin
-from .models import Machine, ProductionRecord
+from .models import (
+    Operator, Die, Part, Machine, DefectReason, DowntimeReasonItem, 
+    ProcessReason, ScheduledDowntime, PartProductionHistory, 
+    DowntimeEventHistory, ProductionRecord
+)
 
-@admin.register(Machine)
-class MachineAdmin(admin.ModelAdmin):
-    list_display = ('name', 'status', 'ideal_cycle_time')
-    list_filter = ('status',)
-
-@admin.register(ProductionRecord)
-class ProductionRecordAdmin(admin.ModelAdmin):
-    list_display = ('machine', 'date', 'shift', 'total_count', 'good_count')
-    list_filter = ('date', 'shift', 'machine')
+admin.site.register(Operator)
+admin.site.register(Die)
+admin.site.register(Part)
+admin.site.register(Machine)
+admin.site.register(DefectReason)
+admin.site.register(DowntimeReasonItem)
+admin.site.register(ProcessReason)
+admin.site.register(ScheduledDowntime)
+admin.site.register(PartProductionHistory)
+admin.site.register(DowntimeEventHistory)
+admin.site.register(ProductionRecord)
