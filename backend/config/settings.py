@@ -114,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "Pacific/Melbourne"
+TIME_ZONE = "Australia/Melbourne"
 
 USE_I18N = True
 
