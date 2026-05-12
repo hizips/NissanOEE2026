@@ -16,9 +16,11 @@ interface PartManagementProps {
   onAddPart: (part: Omit<Part, 'id'>) => void;
   onUpdatePart: (id: string, part: Partial<Part>) => void;
   onDeletePart: (id: string) => void;
+  onAddDie: (partId: string, currentDieIds: string[], dieName: string, dieNumber: string) => Promise<Part>;
+  onRemoveDie: (partId: string, currentDieIds: string[], dieIdToRemove: string) => Promise<Part>;
 }
 
-export function PartManagement({ parts, onAddPart, onUpdatePart, onDeletePart }: PartManagementProps) {
+export function PartManagement({ parts, onAddPart, onUpdatePart, onDeletePart, onAddDie, onRemoveDie }: PartManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -125,7 +127,7 @@ export function PartManagement({ parts, onAddPart, onUpdatePart, onDeletePart }:
     setDieDialogOpen(true);
   };
 
-  const handleAddDie = () => {
+  const handleAddDie = async () => {
     if (!dieFormData.name || !dieFormData.dieNumber) {
       toast.error('Please fill in all die fields');
       return;
@@ -133,26 +135,26 @@ export function PartManagement({ parts, onAddPart, onUpdatePart, onDeletePart }:
 
     if (!managingDiesPart) return;
 
-    const newDie: Die = {
-      id: crypto.randomUUID(),
-      name: dieFormData.name,
-      dieNumber: dieFormData.dieNumber,
-    };
-
-    const updatedDies = [...(managingDiesPart.dies || []), newDie];
-    onUpdatePart(managingDiesPart.id, { dies: updatedDies });
-    setManagingDiesPart({ ...managingDiesPart, dies: updatedDies });
-    setDieFormData({ name: '', dieNumber: '' });
-    toast.success('Die added successfully');
+    try {
+      const currentDieIds = (managingDiesPart.dies || []).map(d => d.id);
+      const updatedPart = await onAddDie(managingDiesPart.id, currentDieIds, dieFormData.name, dieFormData.dieNumber);
+      setManagingDiesPart(updatedPart);
+      setDieFormData({ name: '', dieNumber: '' });
+    } catch {
+      // error already shown by parent
+    }
   };
 
-  const handleRemoveDie = (dieId: string) => {
+  const handleRemoveDie = async (dieId: string) => {
     if (!managingDiesPart) return;
 
-    const updatedDies = managingDiesPart.dies.filter(d => d.id !== dieId);
-    onUpdatePart(managingDiesPart.id, { dies: updatedDies });
-    setManagingDiesPart({ ...managingDiesPart, dies: updatedDies });
-    toast.success('Die removed successfully');
+    try {
+      const currentDieIds = (managingDiesPart.dies || []).map(d => d.id);
+      const updatedPart = await onRemoveDie(managingDiesPart.id, currentDieIds, dieId);
+      setManagingDiesPart(updatedPart);
+    } catch {
+      // error already shown by parent
+    }
   };
 
   return (

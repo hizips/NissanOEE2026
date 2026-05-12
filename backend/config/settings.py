@@ -99,6 +99,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 5,  # Wait up to 5 seconds for the database lock to be released
+        },
     }
 }
 

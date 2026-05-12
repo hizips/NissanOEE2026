@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import type { Machine, Operator, Part } from '@/types';
@@ -19,6 +20,7 @@ export interface OperatorSetupData {
   partName: string;
   shift: 'morning' | 'afternoon' | 'night';
   die?: string;
+  counterStart?: number;
 }
 
 interface OperatorSetupProps {
@@ -39,6 +41,7 @@ export function OperatorSetup({ machines, operators, parts, onStartWork, existin
   const [partName, setPartName] = useState<string>(existingSetup?.partName || '');
   const [shift, setShift] = useState<'morning' | 'afternoon' | 'night'>(existingSetup?.shift || 'morning');
   const [die, setDie] = useState<string>(existingSetup?.die || '');
+  const [counterStart, setCounterStart] = useState<string>(existingSetup?.counterStart?.toString() || '');
 
   const selectedMachine = machines.find(m => m.id === selectedMachineId);
 
@@ -110,6 +113,7 @@ export function OperatorSetup({ machines, operators, parts, onStartWork, existin
       partName,
       shift,
       die: isDieCastMachine && selectedPart?.dies.length ? die : undefined,
+      counterStart: counterStart ? parseInt(counterStart) : 0,
     };
 
     onStartWork(setupData);
@@ -372,6 +376,28 @@ export function OperatorSetup({ machines, operators, parts, onStartWork, existin
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Machine Counter Start - Show when part is selected */}
+            {partName && (
+              <div className="space-y-4 p-6 rounded-xl border-2 bg-blue-50 border-blue-300">
+                <Label className="text-lg font-semibold flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                  Machine Counter Reading *
+                  <Badge className="bg-blue-600 text-white">Start of Shift</Badge>
+                </Label>
+                <p className="text-sm text-blue-800">
+                  Enter the current counter number displayed on the machine before starting production.
+                </p>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="e.g., 12345"
+                  value={counterStart}
+                  onChange={(e) => setCounterStart(e.target.value)}
+                  className="h-20 text-3xl font-bold text-center border-4 border-blue-400 bg-white"
+                />
               </div>
             )}
 

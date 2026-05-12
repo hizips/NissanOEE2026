@@ -29,10 +29,11 @@ import { Button } from '@/components/ui/button';
 import { Factory, Clock, Calendar, LogOut, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { 
-  operatorApi, partApi, machineApi, defectReasonApi, 
+import {
+  operatorApi, partApi, machineApi, defectReasonApi,
   downtimeReasonApi, processReasonApi, scheduledDowntimeApi,
-  productionRecordApi, partProductionHistoryApi, downtimeEventHistoryApi
+  productionRecordApi, partProductionHistoryApi, downtimeEventHistoryApi,
+  addDieToPart, removeDieFromPart
 } from '@/services/api';
 
 // Generate realistic sample data
@@ -83,13 +84,13 @@ const generateSampleData = (): ProductionRecord[] => {
             downtimeReason: downtime > 60 ? { category: 'Material', subcategory: 'Shortage' } : undefined,
             goodCount: actualCount - defects,
             defectCount: defects,
-              
+
             // --- ADD THESE THREE LINES TO FIX THE ERROR ---
             grossCount: actualCount,
             excludedShots: 0,
             netProduction: actualCount,
             // ----------------------------------------------
-              
+
             operatorName: operators[Math.floor(Math.random() * operators.length)],
             notes: downtime > 60 ? 'Extended downtime due to material shortage' : '',
             timestamp: date.getTime() + (shift === 'morning' ? 8 : shift === 'afternoon' ? 16 : 0) * 3600000,
@@ -380,10 +381,34 @@ export default function App() {
 
   const updatePart = async (id: string, updates: Partial<Part>) => {
     try {
-      const updated = await partApi.update(id, updates);
+      const updated = await partApi.patch(id, updates);
       setParts(parts.map(p => p.id == id ? updated : p));
     } catch (e) {
       toast.error('Failed to update part');
+    }
+  };
+
+  const handleAddDieToPart = async (partId: string, currentDieIds: string[], dieName: string, dieNumber: string) => {
+    try {
+      const { part: updatedPart } = await addDieToPart(partId, currentDieIds, dieName, dieNumber);
+      setParts(prev => prev.map(p => p.id == partId ? updatedPart : p));
+      toast.success('Die added successfully');
+      return updatedPart;
+    } catch (e) {
+      toast.error('Failed to add die');
+      throw e;
+    }
+  };
+
+  const handleRemoveDieFromPart = async (partId: string, currentDieIds: string[], dieIdToRemove: string) => {
+    try {
+      const updatedPart = await removeDieFromPart(partId, currentDieIds, dieIdToRemove);
+      setParts(prev => prev.map(p => p.id == partId ? updatedPart : p));
+      toast.success('Die removed successfully');
+      return updatedPart;
+    } catch (e) {
+      toast.error('Failed to remove die');
+      throw e;
     }
   };
 
@@ -648,242 +673,245 @@ export default function App() {
       </>
     );
   }
-    
-const updatePartProductionHistory = async (id: string, updates: Partial<PartProductionHistory>) => {
-  try {
-    const updated = await partProductionHistoryApi.patch(id, updates);
-    setPartProductionHistory(prev =>
-      prev.map(record => (record.id === id ? { ...record, ...updated } : record))
-    );
-    toast.success('Part history updated');
-  } catch (e) {
-    toast.error('Failed to update part history on server');
-  }
-};
 
-const updateDowntimeEventHistory = async (id: string, updates: Partial<DowntimeEventHistory>) => {
-  try {
-    const updated = await downtimeEventHistoryApi.patch(id, updates);
-    setDowntimeEventHistory(prev =>
-      prev.map(event => (event.id === id ? { ...event, ...updated } : event))
-    );
-    toast.success('Downtime event updated');
-  } catch (e) {
-    toast.error('Failed to update downtime event on server');
-  }
-};
+  const updatePartProductionHistory = async (id: string, updates: Partial<PartProductionHistory>) => {
+    try {
+      const updated = await partProductionHistoryApi.patch(id, updates);
+      setPartProductionHistory(prev =>
+        prev.map(record => (record.id === id ? { ...record, ...updated } : record))
+      );
+      toast.success('Part history updated');
+    } catch (e) {
+      toast.error('Failed to update part history on server');
+    }
+  };
 
-    return (
-      <>
-        <div className="min-h-screen bg-[#F1F5F9]">
-          <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 shadow-lg">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-blue-600 rounded-lg">
-                    <Factory className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white whitespace-nowrap leading-tight">
-                        OEE Management System
-                    </p>
-                    <p className="text-sm text-slate-300">Casting Factory Production Monitoring</p>
-                  </div>
+  const updateDowntimeEventHistory = async (id: string, updates: Partial<DowntimeEventHistory>) => {
+    try {
+      const updated = await downtimeEventHistoryApi.patch(id, updates);
+      setDowntimeEventHistory(prev =>
+        prev.map(event => (event.id === id ? { ...event, ...updated } : event))
+      );
+      toast.success('Downtime event updated');
+    } catch (e) {
+      toast.error('Failed to update downtime event on server');
+    }
+  };
+
+  return (
+    <>
+      <div className="min-h-screen bg-[#F1F5F9]">
+        <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 shadow-lg">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Factory className="w-8 h-8" />
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-slate-400" />
-                    <span className="font-semibold">{format(currentTime, 'MMM dd, yyyy')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-slate-400" />
-                    <span className="font-mono font-semibold">{format(currentTime, 'HH:mm:ss')}</span>
-                  </div>
-                  <Badge className={`${currentShift.color} text-white px-3 py-1`}>
-                    {currentShift.name}
-                  </Badge>
-                  <div className="text-sm">
-                    <span className="text-slate-400">Machines:</span>
-                    <span className="ml-2 font-semibold">
-                      {runningMachines}/{totalMachines} Running
-                    </span>
-                  </div>
-                  <div className="h-8 w-px bg-slate-600"></div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-sm font-semibold flex items-center gap-2">
-                        <User className="h-4 w-4 text-slate-400" />
-                        {currentUser?.employeeId}
-                      </div>
-                      <div className="text-xs text-slate-400 capitalize">
-                        {currentUser?.role}
-                      </div>
+                <div>
+                  <p className="text-2xl font-bold text-white whitespace-nowrap leading-tight">
+                    OEE Management System
+                  </p>
+                  <p className="text-sm text-slate-300">Casting Factory Production Monitoring</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-slate-400" />
+                  <span className="font-semibold">{format(currentTime, 'MMM dd, yyyy')}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-slate-400" />
+                  <span className="font-mono font-semibold">{format(currentTime, 'HH:mm:ss')}</span>
+                </div>
+                <Badge className={`${currentShift.color} text-white px-3 py-1`}>
+                  {currentShift.name}
+                </Badge>
+                <div className="text-sm">
+                  <span className="text-slate-400">Machines:</span>
+                  <span className="ml-2 font-semibold">
+                    {runningMachines}/{totalMachines} Running
+                  </span>
+                </div>
+                <div className="h-8 w-px bg-slate-600"></div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-sm font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 text-slate-400" />
+                      {currentUser?.employeeId}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={handleLogout}
-                      className="gap-2 bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:text-white h-12 px-6"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      <span className="font-semibold">Logout</span>
-                    </Button>
+                    <div className="text-xs text-slate-400 capitalize">
+                      {currentUser?.role}
+                    </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleLogout}
+                    className="gap-2 bg-slate-700 border-slate-600 text-white hover:bg-slate-600 hover:text-white h-12 px-6"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="font-semibold">Logout</span>
+                  </Button>
                 </div>
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          <main className="max-w-7xl mx-auto px-6 py-8">
-            <Tabs defaultValue={currentUser?.role === 'operator' ? 'entry' : 'dashboard'} className="space-y-6">
-                {currentUser?.role === 'manager' ? (
-                  <TabsList className="grid w-full grid-cols-8 h-14 shadow-sm border border-slate-200">
-                    <TabsTrigger value="dashboard" className="text-base h-full">Dashboard</TabsTrigger>
-                    <TabsTrigger value="records" className="text-base h-full">Shift Records</TabsTrigger>
-                    <TabsTrigger value="history" className="text-base h-full">History</TabsTrigger>
-                    <TabsTrigger value="operators" className="text-base h-full">Operators</TabsTrigger>
-                    <TabsTrigger value="machines" className="text-base h-full">Machines</TabsTrigger>
-                    <TabsTrigger value="parts" className="text-base h-full">Parts</TabsTrigger>
-                    <TabsTrigger value="reasons" className="text-base h-full">Reasons</TabsTrigger>
-                    <TabsTrigger value="downtime" className="text-base h-full">Scheduled Downtime</TabsTrigger>
-                  </TabsList>
-                ) : (
-                  <div className="max-w-2xl">
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg shadow-lg">
-                      <h2 className="text-2xl font-bold mb-2">Operator Data Entry</h2>
-                      <p className="text-blue-100">Record production data for your current shift</p>
-                    </div>
-                  </div>
-                )}
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          <Tabs defaultValue={currentUser?.role === 'operator' ? 'entry' : 'dashboard'} className="space-y-6">
+            {currentUser?.role === 'manager' ? (
+              <TabsList className="grid w-full grid-cols-8 h-14 shadow-sm border border-slate-200">
+                <TabsTrigger value="dashboard" className="text-base h-full">Dashboard</TabsTrigger>
+                <TabsTrigger value="records" className="text-base h-full">Shift Records</TabsTrigger>
+                <TabsTrigger value="history" className="text-base h-full">History</TabsTrigger>
+                <TabsTrigger value="operators" className="text-base h-full">Operators</TabsTrigger>
+                <TabsTrigger value="machines" className="text-base h-full">Machines</TabsTrigger>
+                <TabsTrigger value="parts" className="text-base h-full">Parts</TabsTrigger>
+                <TabsTrigger value="reasons" className="text-base h-full">Reasons</TabsTrigger>
+                <TabsTrigger value="downtime" className="text-base h-full">Scheduled Downtime</TabsTrigger>
+              </TabsList>
+            ) : (
+              <div className="max-w-2xl">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg shadow-lg">
+                  <h2 className="text-2xl font-bold mb-2">Operator Data Entry</h2>
+                  <p className="text-blue-100">Record production data for your current shift</p>
+                </div>
+              </div>
+            )}
 
-                {currentUser?.role === 'manager' && (
-                  <>
-                    <TabsContent value="dashboard">
-                      <Dashboard
-                        machines={machines}
-                        productionRecords={productionRecords}
-                      />
-                    </TabsContent>
+            {currentUser?.role === 'manager' && (
+              <>
+                <TabsContent value="dashboard">
+                  <Dashboard
+                    machines={machines}
+                    productionRecords={productionRecords}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="records">
-                      <ProductionRecordManagement
-                        productionRecords={productionRecords}
-                        partProductionHistory={partProductionHistory}
-                        downtimeEventHistory={downtimeEventHistory}
-                        machines={machines}
-                        parts={parts}
-                        defectReasons={defectReasons}
-                        onUpdateRecord={updateProductionRecord}
-                        onAddPartHistory={addPartProductionHistory}
-                        onUpdatePartHistory={updatePartProductionHistory}
-                        onDeletePartHistory={deletePartProductionHistory}
-                        onAddDowntimeEvent={addDowntimeEventHistory}
-                        onUpdateDowntimeEvent={updateDowntimeEventHistory}
-                        onDeleteDowntimeEvent={deleteDowntimeEventHistory}
-                      />
-                    </TabsContent>
+                <TabsContent value="records">
+                  <ProductionRecordManagement
+                    productionRecords={productionRecords}
+                    partProductionHistory={partProductionHistory}
+                    downtimeEventHistory={downtimeEventHistory}
+                    machines={machines}
+                    parts={parts}
+                    defectReasons={defectReasons}
+                    onUpdateRecord={updateProductionRecord}
+                    onAddPartHistory={addPartProductionHistory}
+                    onUpdatePartHistory={updatePartProductionHistory}
+                    onDeletePartHistory={deletePartProductionHistory}
+                    onAddDowntimeEvent={addDowntimeEventHistory}
+                    onUpdateDowntimeEvent={updateDowntimeEventHistory}
+                    onDeleteDowntimeEvent={deleteDowntimeEventHistory}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="history">
-                      <HistoricalData
-                        productionRecords={productionRecords}
-                        partProductionHistory={partProductionHistory}
-                        downtimeEventHistory={downtimeEventHistory}
-                        machines={machines}
-                        parts={parts}
-                        operators={operators}
-                        defectReasons={defectReasons}
-                        onDeleteRecord={deleteProductionRecord}
-                        onDeletePartHistory={deletePartProductionHistory}
-                        onDeleteDowntimeEvent={deleteDowntimeEventHistory}
-                        onUpdatePartHistory={updatePartProductionHistory}
-                        onUpdateDowntimeEvent={updateDowntimeEventHistory}
-                        userRole={currentUser?.role || 'operator'}
-                      />
-                    </TabsContent>
+                <TabsContent value="history">
+                  <HistoricalData
+                    productionRecords={productionRecords}
+                    partProductionHistory={partProductionHistory}
+                    downtimeEventHistory={downtimeEventHistory}
+                    machines={machines}
+                    parts={parts}
+                    operators={operators}
+                    defectReasons={defectReasons}
+                    onDeleteRecord={deleteProductionRecord}
+                    onDeletePartHistory={deletePartProductionHistory}
+                    onDeleteDowntimeEvent={deleteDowntimeEventHistory}
+                    onUpdatePartHistory={updatePartProductionHistory}
+                    onUpdateDowntimeEvent={updateDowntimeEventHistory}
+                    userRole={currentUser?.role || 'operator'}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="machines">
-                      <MachineManagement
-                        machines={machines}
-                        productionRecords={productionRecords}
-                        parts={parts}
-                        onUpdateMachine={updateMachine}
-                        onAddMachine={addMachine}
-                        onDeleteMachine={deleteMachine}
-                        userRole={currentUser?.role || 'operator'}
-                      />
-                    </TabsContent>
+                <TabsContent value="machines">
+                  <MachineManagement
+                    machines={machines}
+                    productionRecords={productionRecords}
+                    parts={parts}
+                    onUpdateMachine={updateMachine}
+                    onAddMachine={addMachine}
+                    onDeleteMachine={deleteMachine}
+                    userRole={currentUser?.role || 'operator'}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="operators">
-                      <OperatorManagement
-                        operators={operators}
-                        onAddOperator={addOperator}
-                        onUpdateOperator={updateOperator}
-                        onDeleteOperator={deleteOperator}
-                      />
-                    </TabsContent>
+                <TabsContent value="operators">
+                  <OperatorManagement
+                    operators={operators}
+                    onAddOperator={addOperator}
+                    onUpdateOperator={updateOperator}
+                    onDeleteOperator={deleteOperator}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="parts">
-                      <PartManagement
-                        parts={parts}
-                        onAddPart={addPart}
-                        onUpdatePart={updatePart}
-                        onDeletePart={deletePart}
-                      />
-                    </TabsContent>
+                <TabsContent value="parts">
+                  <PartManagement
+                    parts={parts}
+                    onAddPart={addPart}
+                    onUpdatePart={updatePart}
+                    onDeletePart={deletePart}
+                    onAddDie={handleAddDieToPart}
+                    onRemoveDie={handleRemoveDieFromPart}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="reasons">
-                      <ReasonManagement
-                        defectReasons={defectReasons}
-                        downtimeReasons={downtimeReasons}
-                        processReasons={processReasons}
-                        machines={machines}
-                        parts={parts}
-                        onAddDefectReason={addDefectReason}
-                        onUpdateDefectReason={updateDefectReason}
-                        onDeleteDefectReason={deleteDefectReason}
-                        onAddDowntimeReason={addDowntimeReason}
-                        onUpdateDowntimeReason={updateDowntimeReason}
-                        onDeleteDowntimeReason={deleteDowntimeReason}
-                        onAddProcessReason={addProcessReason}
-                        onUpdateProcessReason={updateProcessReason}
-                        onDeleteProcessReason={deleteProcessReason}
-                      />
-                    </TabsContent>
+                <TabsContent value="reasons">
+                  <ReasonManagement
+                    defectReasons={defectReasons}
+                    downtimeReasons={downtimeReasons}
+                    processReasons={processReasons}
+                    machines={machines}
+                    parts={parts}
+                    onAddDefectReason={addDefectReason}
+                    onUpdateDefectReason={updateDefectReason}
+                    onDeleteDefectReason={deleteDefectReason}
+                    onAddDowntimeReason={addDowntimeReason}
+                    onUpdateDowntimeReason={updateDowntimeReason}
+                    onDeleteDowntimeReason={deleteDowntimeReason}
+                    onAddProcessReason={addProcessReason}
+                    onUpdateProcessReason={updateProcessReason}
+                    onDeleteProcessReason={deleteProcessReason}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="downtime">
-                      <ScheduledDowntimeManagement
-                        scheduledDowntimes={scheduledDowntimes}
-                        machines={machines}
-                        onAdd={addScheduledDowntime}
-                        onUpdate={updateScheduledDowntime}
-                        onDelete={deleteScheduledDowntime}
-                      />
-                    </TabsContent>
-                  </>
-                )}
+                <TabsContent value="downtime">
+                  <ScheduledDowntimeManagement
+                    scheduledDowntimes={scheduledDowntimes}
+                    machines={machines}
+                    onAdd={addScheduledDowntime}
+                    onUpdate={updateScheduledDowntime}
+                    onDelete={deleteScheduledDowntime}
+                  />
+                </TabsContent>
+              </>
+            )}
 
-                {currentUser?.role === 'operator' && (
-                  <TabsContent value="entry">
-                    <DataEntry
-                      machines={machines}
-                      defectReasons={defectReasons}
-                      onUpdatePartHistory={updatePartProductionHistory}
-                      onAddRecord={addProductionRecord}
-                      onUpdateRecord={updateProductionRecord}
-                      onAddPartHistory={addPartProductionHistory}
-                      onAddDowntimeEvent={addDowntimeEventHistory}
-                      currentUser={currentUser}
-                      loginTimestamp={loginTimestamp}
-                      operatorSetup={operatorSetup || undefined}
-                      onEditSetup={handleEditSetup}
-                      onCheckOff={handleCheckOff}
-                    />
-                  </TabsContent>
-                )}
-              </Tabs>
-          </main>
-        </div>
-        <Toaster />
-      </>
-    );
-  }
+            {currentUser?.role === 'operator' && (
+              <TabsContent value="entry">
+                <DataEntry
+                  machines={machines}
+                  parts={parts}
+                  defectReasons={defectReasons}
+                  onUpdatePartHistory={updatePartProductionHistory}
+                  onAddRecord={addProductionRecord}
+                  onUpdateRecord={updateProductionRecord}
+                  onAddPartHistory={addPartProductionHistory}
+                  onAddDowntimeEvent={addDowntimeEventHistory}
+                  currentUser={currentUser}
+                  loginTimestamp={loginTimestamp}
+                  operatorSetup={operatorSetup || undefined}
+                  onEditSetup={handleEditSetup}
+                  onCheckOff={handleCheckOff}
+                />
+              </TabsContent>
+            )}
+          </Tabs>
+        </main>
+      </div>
+      <Toaster />
+    </>
+  );
+}

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Users,
   Factory,
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import type { Machine, ProductionRecord, PartProductionHistory, DowntimeEventHistory, DefectReason } from '@/types';
+import type { Machine, ProductionRecord, PartProductionHistory, DowntimeEventHistory, DefectReason, Part } from '@/types';
 import type { OperatorSetupData } from '@/components/OperatorSetup';
 import { DefectCategorySelector } from '@/components/DefectCategorySelector';
 import { DowntimeReasonSelector, type DowntimeReasonPath } from '@/components/DowntimeReasonSelector';
@@ -39,11 +40,12 @@ const DIES = ['Die #1', 'Die #2', 'Die #3', 'Die #4', 'Die #5', 'Die #6', 'Die #
 
 interface DataEntryProps {
   machines: Machine[];
+  parts: Part[];
   onAddRecord: (record: Omit<ProductionRecord, 'id' | 'timestamp'>) => Promise<ProductionRecord>;
   onUpdateRecord?: (id: string, updates: Partial<ProductionRecord>) => Promise<ProductionRecord>;
-  onAddPartHistory: (record: Omit<PartProductionHistory, 'id' | 'timestamp'>) => void;
-  onAddDowntimeEvent: (event: Omit<DowntimeEventHistory, 'id' | 'timestamp'>) => void;
-  onUpdatePartHistory: (id: string, updates: Partial<PartProductionHistory>) => void;
+  onAddPartHistory: (record: Omit<PartProductionHistory, 'id' | 'timestamp'>) => Promise<void> | void;
+  onAddDowntimeEvent: (event: Omit<DowntimeEventHistory, 'id' | 'timestamp'>) => Promise<void> | void;
+  onUpdatePartHistory: (id: string, updates: Partial<PartProductionHistory>) => Promise<void> | void;
   currentUser: { employeeId: string; role: 'operator' | 'manager' } | null;
   loginTimestamp: Date;
   operatorSetup?: OperatorSetupData;
@@ -83,6 +85,7 @@ interface DowntimeEvent {
 
 export function DataEntry({
   machines,
+  parts,
   onAddRecord,
   onUpdateRecord,
   onAddPartHistory,
@@ -130,6 +133,10 @@ export function DataEntry({
   const [shiftComment, setShiftComment] = useState('');
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
 
+  // Checkoff dialog state
+  const [checkoffDialogOpen, setCheckoffDialogOpen] = useState(false);
+  const [counterEndInput, setCounterEndInput] = useState('');
+
   const syncProductionRecord = async (
     currentProducts: ProductRecord[] = products,
     currentDowntimes: DowntimeEvent[] = downtimeEvents,
@@ -155,9 +162,9 @@ export function DataEntry({
       date: format(new Date(), 'yyyy-MM-dd'),
       shift: detectedShift,
       plannedProductionTime: 480,
-      counterStart: 0,
-      counterEnd: netProduction,
-      grossCount: netProduction,
+      counterStart: operatorSetup.counterStart || 0,
+      counterEnd: 0, // Will be set at checkoff
+      grossCount: 0, // Will be set at checkoff
       excludedShots: 0,
       netProduction: netProduction,
       totalCount: netProduction,
@@ -263,6 +270,11 @@ export function DataEntry({
     }
   }, [currentDowntime.reason]);
 
+  // Dies available for the currently selected part (from operator setup)
+  const availableDies = operatorSetup?.partId
+    ? (parts.find(p => p.id === operatorSetup.partId)?.dies || [])
+    : [];
+
   const goodCount = products.filter(p => p.status === 'good').length;
   const ngCount = products.filter(p => p.status === 'ng').length;
   const totalCount = products.length;
@@ -278,7 +290,7 @@ export function DataEntry({
 
     
 
-  const handleGoodClick = () => {
+  const handleGoodClick = async () => {
     if (!operatorSetup) {
       toast.error('Please complete operator setup first');
       return;
@@ -297,10 +309,10 @@ export function DataEntry({
 
     const newProducts = [newProduct, ...products];
     setProducts(newProducts);
-    syncProductionRecord(newProducts);
+    await syncProductionRecord(newProducts);
 
     // Save to part production history
-    onAddPartHistory({
+    await onAddPartHistory({
       machineId: operatorSetup.machineId,
       machineName: operatorSetup.machineName,
       partId: operatorSetup.partId,
@@ -327,7 +339,7 @@ export function DataEntry({
     setCurrentDefect(null);
   };
 
-  const handleDefectSave = () => {
+  const handleDefectSave = async () => {
     if (!currentDefect || !operatorSetup) {
       toast.error('Please select a defect reason');
       return;
@@ -347,7 +359,7 @@ export function DataEntry({
           : p
       );
       setProducts(newProducts);
-      syncProductionRecord(newProducts);
+      await syncProductionRecord(newProducts);
       toast.success('Product updated');
       setEditingProductId(null);
     } else {
@@ -368,10 +380,10 @@ export function DataEntry({
 
       const newProducts = [newProduct, ...products];
       setProducts(newProducts);
-      syncProductionRecord(newProducts);
+      await syncProductionRecord(newProducts);
 
       // Save to part production history
-      onAddPartHistory({
+      await onAddPartHistory({
         machineId: operatorSetup.machineId,
         machineName: operatorSetup.machineName,
         partId: operatorSetup.partId,
@@ -449,7 +461,7 @@ export function DataEntry({
     return Math.max(0, Math.round(durationMs / 60000));
   };
 
-  const handleSaveDowntime = () => {
+  const handleSaveDowntime = async () => {
     if (!operatorSetup) {
       toast.error('Please complete operator setup first');
       return;
@@ -522,10 +534,10 @@ export function DataEntry({
 
       const newDowntimes = [newEvent, ...downtimeEvents];
       setDowntimeEvents(newDowntimes);
-      syncProductionRecord(products, newDowntimes);
+      await syncProductionRecord(products, newDowntimes);
 
       // Save to downtime event history
-      onAddDowntimeEvent({
+      await onAddDowntimeEvent({
         machineId: operatorSetup.machineId,
         machineName: operatorSetup.machineName,
         operatorName: operatorSetup.operatorName,
@@ -667,7 +679,62 @@ export function DataEntry({
   };
 
   const handleCheckOffWrapper = async () => {
-    await syncProductionRecord();
+    // Show the counter end dialog instead of immediately checking off
+    setCheckoffDialogOpen(true);
+    setCounterEndInput('');
+  };
+
+  const handleConfirmCheckOff = async () => {
+    const counterEnd = parseInt(counterEndInput);
+    if (isNaN(counterEnd) || counterEnd < 0) {
+      toast.error('Please enter a valid counter end number');
+      return;
+    }
+
+    const counterStart = operatorSetup?.counterStart || 0;
+    const grossCount = counterEnd - counterStart;
+
+    if (grossCount < 0) {
+      toast.error('Counter end must be greater than counter start');
+      return;
+    }
+
+    // Do a final sync with the counter end values
+    if (operatorSetup && activeRecordId && onUpdateRecord) {
+      const goodCount = products.filter(p => p.status === 'good').length;
+      const defectCount = products.filter(p => p.status === 'ng').length;
+      const netProduction = products.length;
+      const totalDowntime = downtimeEvents.reduce((total, event) => total + event.duration, 0);
+
+      const hour = new Date().getHours();
+      let detectedShift: 'morning' | 'afternoon' | 'night' = 'morning';
+      if (hour >= 6 && hour < 14) detectedShift = 'morning';
+      else if (hour >= 14 && hour < 22) detectedShift = 'afternoon';
+      else detectedShift = 'night';
+
+      await onUpdateRecord(activeRecordId, {
+        counterStart,
+        counterEnd,
+        grossCount,
+        excludedShots: 0,
+        netProduction,
+        totalCount: netProduction,
+        goodCount,
+        defectCount,
+        downtime: totalDowntime,
+        notes: shiftComment,
+        shift: detectedShift,
+      });
+    } else {
+      // No active record yet, do a full sync first
+      await syncProductionRecord();
+    }
+
+    setCheckoffDialogOpen(false);
+    toast.success('Shift checked off successfully!', {
+      duration: 3000,
+      className: 'bg-green-500 text-white',
+    });
     if (onCheckOff) onCheckOff();
   };
 
@@ -716,6 +783,7 @@ export function DataEntry({
     }
 
   return (
+    <>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Sticky Top Information Bar */}
       <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg shadow-2xl p-6">
@@ -1214,14 +1282,18 @@ export function DataEntry({
                             <SelectValue placeholder="Choose new die..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {DIES.map((dieOption) => (
-                              <SelectItem key={dieOption} value={dieOption} className="text-lg py-3">
-                                {dieOption}
-                                {dieOption === currentDie && (
-                                  <Badge className="ml-2 bg-blue-600">Current</Badge>
-                                )}
-                              </SelectItem>
-                            ))}
+                            {availableDies.length > 0 ? (
+                              availableDies.map((dieOption) => (
+                                <SelectItem key={dieOption.id} value={dieOption.name} className="text-lg py-3">
+                                  {dieOption.name}
+                                  {dieOption.name === currentDie && (
+                                    <Badge className="ml-2 bg-blue-600">Current</Badge>
+                                  )}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="__none" disabled>No dies configured for this part</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
 
@@ -1268,14 +1340,18 @@ export function DataEntry({
                         <SelectValue placeholder="Choose new die..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {DIES.map((dieOption) => (
-                          <SelectItem key={dieOption} value={dieOption} className="text-lg py-3">
-                            {dieOption}
-                            {dieOption === currentDie && (
-                              <Badge className="ml-2 bg-blue-600">Current</Badge>
-                            )}
-                          </SelectItem>
-                        ))}
+                        {availableDies.length > 0 ? (
+                          availableDies.map((dieOption) => (
+                            <SelectItem key={dieOption.id} value={dieOption.name} className="text-lg py-3">
+                              {dieOption.name}
+                              {dieOption.name === currentDie && (
+                                <Badge className="ml-2 bg-blue-600">Current</Badge>
+                              )}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="__none" disabled>No dies configured for this part</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -1474,5 +1550,89 @@ export function DataEntry({
         </CardContent>
       </Card>
     </div>
+
+      {/* Checkoff Counter End Dialog */}
+      <Dialog open={checkoffDialogOpen} onOpenChange={setCheckoffDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              <div className="bg-green-500 rounded-full p-2">
+                <CheckCircle className="h-6 w-6 text-white" />
+              </div>
+              End of Shift Check-Off
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Enter the current machine counter reading to complete your shift.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Counter Start Reference */}
+            <div className="bg-slate-50 border-2 border-slate-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-600">Counter Start (beginning of shift)</span>
+                <span className="text-2xl font-bold text-slate-900">
+                  {operatorSetup?.counterStart ?? 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Counter End Input */}
+            <div className="space-y-3">
+              <Label htmlFor="counter-end" className="text-lg font-semibold">
+                Machine Counter Reading Now *
+              </Label>
+              <Input
+                id="counter-end"
+                type="number"
+                min="0"
+                placeholder="e.g., 12500"
+                value={counterEndInput}
+                onChange={(e) => setCounterEndInput(e.target.value)}
+                className="h-20 text-3xl font-bold text-center border-4 border-green-400 bg-white"
+                autoFocus
+              />
+            </div>
+
+            {/* Gross Count Preview */}
+            {counterEndInput && !isNaN(parseInt(counterEndInput)) && (
+              <div className={`border-2 rounded-lg p-4 ${
+                parseInt(counterEndInput) - (operatorSetup?.counterStart || 0) >= 0
+                  ? 'bg-green-50 border-green-300'
+                  : 'bg-red-50 border-red-300'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-700">Gross Count (Counter End − Counter Start)</span>
+                  <span className={`text-2xl font-bold ${
+                    parseInt(counterEndInput) - (operatorSetup?.counterStart || 0) >= 0
+                      ? 'text-green-700'
+                      : 'text-red-700'
+                  }`}>
+                    {parseInt(counterEndInput) - (operatorSetup?.counterStart || 0)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setCheckoffDialogOpen(false)}
+              className="h-14 text-lg px-8"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmCheckOff}
+              className="h-14 text-lg px-8 bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle className="h-5 w-5 mr-2" />
+              Confirm Check-Off
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

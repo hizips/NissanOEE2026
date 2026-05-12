@@ -257,7 +257,7 @@ export function ProductionRecordManagement({
                     </div>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
-                    <div className="text-center"><div className="text-slate-500">Gross</div><div className="font-bold text-lg">{record.grossCount}</div></div>
+                    <div className="text-center"><div className="text-slate-500">Counter</div><div className="font-bold text-lg">{record.grossCount}</div></div>
                     <div className="text-center"><div className="text-slate-500">Net</div><div className="font-bold text-lg text-blue-600">{record.netProduction}</div></div>
                     <div className="text-center"><div className="text-slate-500">Defects</div><div className="font-bold text-lg text-red-600">{record.defectCount}</div></div>
                     <div className="text-center"><div className="text-slate-500">Down</div><div className="font-bold text-lg text-orange-600">{record.downtime}m</div></div>
