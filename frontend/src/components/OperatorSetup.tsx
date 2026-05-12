@@ -10,6 +10,7 @@ import { ClipboardList, User, Calendar, Factory, Package, Clock, PlayCircle, Inf
 import { format } from 'date-fns';
 import { MachineSelector } from '@/components/MachineSelector';
 import { PartSelector } from './PartSelector';
+import { toast } from 'sonner';
 
 export interface OperatorSetupData {
   operatorName: string;
@@ -88,19 +89,19 @@ export function OperatorSetup({ machines, operators, parts, onStartWork, existin
 
   const handleStartWork = () => {
     if (!operatorName) {
-      alert('Please select your name');
+      toast.error('Please select your name');
       return;
     }
     if (!selectedMachineId) {
-      alert('Please select a machine');
+      toast.error('Please select a machine');
       return;
     }
     if (!partName) {
-      alert('Please select a part');
+      toast.error('Please select a part');
       return;
     }
     if (isDieCastMachine && selectedPart && selectedPart.dies.length > 0 && !die) {
-      alert('Please select a die for this casting machine');
+      toast.error('Please select a die for this casting machine');
       return;
     }
 
@@ -177,14 +178,20 @@ export function OperatorSetup({ machines, operators, parts, onStartWork, existin
               <div className="space-y-3">
                 <Label className="text-lg font-semibold flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-600" />
-                  Date
-                  <Badge variant="outline" className="ml-auto bg-blue-100 text-blue-700">Auto</Badge>
+                  Date *
+                  <Badge variant="outline" className="ml-auto bg-blue-100 text-blue-700">Auto Default</Badge>
                 </Label>
-                <div className="h-16 px-4 bg-gradient-to-r from-blue-100 to-blue-50 border-4 border-blue-300 rounded-lg flex items-center justify-center gap-3">
-                  <span className="font-bold text-2xl text-blue-700">
-                    {format(new Date(date), 'MMM dd, yyyy')}
-                  </span>
-                </div>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  disabled={isPartCastChangeMode}
+                  className={`h-16 px-4 text-xl font-bold border-4 [color-scheme:light] ${
+                    isPartCastChangeMode 
+                      ? 'border-slate-300 bg-slate-100 text-slate-500' 
+                      : 'border-blue-300 bg-blue-50 text-blue-800 focus-visible:ring-blue-400'
+                  }`}
+                />
               </div>
 
               <div className="space-y-3">
